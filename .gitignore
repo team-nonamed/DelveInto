@@ -1,0 +1,24 @@
+# Unreal
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+*.sln
+*.opensdf
+*.sdf
+*.tmp
+*.log
+*.obj
+*.pdb
+*.ipch
+.vscode/
+.vs/
+# Rider
+.idea/
+*.iml
+# OS
+.DS_Store
+Thumbs.db
+# Build artifacts
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
