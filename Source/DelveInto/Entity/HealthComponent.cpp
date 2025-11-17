@@ -70,11 +70,24 @@ void UHealthComponent::SetHealth(float NewHealth)
 	}
 }
 
-
-// Called every frame
-void UHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UHealthComponent::TakeDamage(float Amount)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (Amount <= 0.f || IsDead())
+	{
+		return;
+	}
 
-	// ...
+	float NewHealth = FMath::Clamp(CurrentHealth - Amount, 0.f, MaxHealth);
+	SetHealth(NewHealth);
+}
+
+void UHealthComponent::Heal(float Amount)
+{
+	if (Amount <= 0.f || IsDead())
+	{
+		return;
+	}
+
+	float NewHealth = FMath::Clamp(CurrentHealth + Amount, 0.f, MaxHealth);
+	SetHealth(NewHealth);
 }

@@ -63,7 +63,4 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="Health")
 	float GetMaxHealth() const { return MaxHealth; }
-	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 };
