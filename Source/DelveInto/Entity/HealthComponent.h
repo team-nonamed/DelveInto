@@ -8,6 +8,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewHealth, float, MaxHealth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);
+DECLARE_LOG_CATEGORY_EXTERN(LogHealth, Log, All);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DELVEINTO_API UHealthComponent : public UActorComponent
@@ -22,13 +23,16 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Configuration")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	bool bDebugHealthLog = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Configuration")
 	bool bInitWithMaxHealth;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Health")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Health")
 	float MaxHealth;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Health")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Health")
 	float CurrentHealth;
 
 	UFUNCTION()

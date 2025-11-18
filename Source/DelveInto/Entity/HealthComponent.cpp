@@ -3,6 +3,8 @@
 
 #include "Entity/HealthComponent.h"
 
+DEFINE_LOG_CATEGORY(LogHealth)
+
 // Sets default values for this component's properties
 UHealthComponent::UHealthComponent()
 {
@@ -61,6 +63,18 @@ void UHealthComponent::SetHealth(float NewHealth)
 	{
 		return;
 	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (bDebugHealthLog)
+	{
+		AActor* Owner = GetOwner();
+		const FString OwnerName = Owner ? Owner->GetName() : TEXT("Unknown");
+		UE_LOG(LogHealth, Log,
+			TEXT("[HealthComponent] %s: %.1f -> %.1f / Max=%.1f"),
+			*OwnerName, CurrentHealth, NewHealth, MaxHealth);
+	}
+#endif
+	
 	CurrentHealth = NewHealth;
 	OnHealthChanged.Broadcast(CurrentHealth, MaxHealth);
 
