@@ -22,7 +22,7 @@ protected:
 		FName TargetActorTag = TEXT("Player");
 
 	UPROPERTY(EditAnywhere, Category="AI")
-		float SearchRadius = 1000.0f;
+		float SearchStartRadius = 1000.0f;
 
 	UPROPERTY(VisibleAnywhere, Category="AI")
 		ACharacter* CurrentTarget = nullptr;

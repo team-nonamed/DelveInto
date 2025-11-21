@@ -26,6 +26,7 @@ void ADefaultEnemyAIController::Tick(float DeltaTime)
 
 void ADefaultEnemyAIController::UpdateTargetByTag()
 {
+	// AI를 들고 있는 Enemy의 유효성 체크
 	APawn* ControlledPawn = GetPawn();
 	if (!ControlledPawn)
 	{
@@ -34,6 +35,7 @@ void ADefaultEnemyAIController::UpdateTargetByTag()
 		return;
 	}
 
+	// World의 유효성 체크
 	UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -42,8 +44,22 @@ void ADefaultEnemyAIController::UpdateTargetByTag()
 		return;
 	}
 
+	// Enemy의 위치 받아오기
 	const FVector Center = ControlledPawn->GetActorLocation();
 
+	// 이미 Target이 설정된 분기
+	if (CurrentTarget)
+	{
+		// Target의 유효성과 Tag 체크
+		if (!IsValid(CurrentTarget) || !CurrentTarget->ActorHasTag(TargetActorTag))
+		{
+			CurrentTarget = nullptr;
+		}
+		else
+		{
+			return;
+		}
+	}
 	TArray<AActor*> OverlappedActors;
 
 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
@@ -55,7 +71,7 @@ void ADefaultEnemyAIController::UpdateTargetByTag()
 	UKismetSystemLibrary::SphereOverlapActors(
 		World,
 		Center,
-		SearchRadius,
+		SearchStartRadius,
 		ObjectTypes,
 		AActor::StaticClass(),
 		ActorsToIgnore,
@@ -97,20 +113,28 @@ void ADefaultEnemyAIController::UpdateTargetByTag()
 	{
 		UE_LOG(LogTemp, Display, TEXT("Best Target: None (No target in range)"));
 	}
-
 	CurrentTarget = BestTarget;
 }
 
 void ADefaultEnemyAIController::UpdateMovementTowardsTarget()
 {
-	if (!CurrentTarget)
+	APawn* ControlledPawn = GetPawn();
+	
+	if (!CurrentTarget || !IsValid(CurrentTarget))
 	{
+		//ClearFocus(EAIFocusPriority::Gameplay);
 		// 타깃 없으면 멈춤
-		StopMovement();
+		if (ControlledPawn)
+		{
+			StopMovement();
+		}
+		
 		//UE_LOG(LogTemp, Verbose, TEXT("No CurrentTarget, stopping movement"));
 		return;
 	}
-
+	
+	//SetFocus(CurrentTarget);
+	
 	EPathFollowingRequestResult::Type Result =
 		MoveToActor(CurrentTarget, 100.f, true);
 
