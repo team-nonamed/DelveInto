@@ -5,6 +5,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -22,6 +23,16 @@ APlayerMoveController::APlayerMoveController()
 void APlayerMoveController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (LoadingWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Loading widget class"));
+		LoadingWidgetInstance = CreateWidget<UUserWidget>(this, LoadingWidgetClass);
+		if (LoadingWidgetInstance)
+		{
+			LoadingWidgetInstance->AddToViewport();
+		}
+	}
 
 	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{

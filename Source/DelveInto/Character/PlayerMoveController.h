@@ -25,6 +25,12 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	TSubclassOf<UUserWidget> LoadingWidgetClass;
+
+	UPROPERTY()
+	UUserWidget* LoadingWidgetInstance;
+
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
 		UInputMappingContext* InputMappingContext;
