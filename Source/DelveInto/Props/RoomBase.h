@@ -34,7 +34,8 @@ struct FRoomConnectionInfo
 	bool bIsConnectedToDown;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerEnterRoom, AActor*, Player);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerEnterRoom, APlayableCharacter*, Player);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerExitRoom, APlayableCharacter*, Player);
 
 /**
  * 방의 기본 Actor 클래스
@@ -58,7 +59,7 @@ public:
 
 	// Subscriber들이 Binding할 Player 퇴장 Event
 	UPROPERTY(BlueprintAssignable, Category="Room|Event")
-	FOnPlayerEnterRoom OnPlayerLeaveRoom;
+	FOnPlayerExitRoom OnPlayerExitRoom;
 
 	// Room 입장 Trigger가 Trig 되었을 때 호출하는 함수
 	UFUNCTION(BlueprintCallable, Category="Room|Event")
@@ -66,7 +67,7 @@ public:
 
 	// Room 퇴장 Trigger가 Trig 되었을 때 호출하는 함수
 	UFUNCTION(BlueprintCallable, Category="Room|Event")
-	void NotifyPlayerLeft(APlayableCharacter* Player);
+	void NotifyPlayerExited(APlayableCharacter* Player);
 
 protected:
 	// Called when the game starts or when spawned
