@@ -107,11 +107,11 @@ void ADefaultEnemyAIController::UpdateTargetByTag()
 
 	if (BestTarget)
 	{
-		UE_LOG(LogTemp, Display, TEXT("Best Target: %s"), *BestTarget->GetName());
+		//UE_LOG(LogTemp, Display, TEXT("Best Target: %s"), *BestTarget->GetName());
 	}
 	else
 	{
-		UE_LOG(LogTemp, Display, TEXT("Best Target: None (No target in range)"));
+		//UE_LOG(LogTemp, Display, TEXT("Best Target: None (No target in range)"));
 	}
 	CurrentTarget = BestTarget;
 }
@@ -138,8 +138,8 @@ void ADefaultEnemyAIController::UpdateMovementTowardsTarget()
 	EPathFollowingRequestResult::Type Result =
 		MoveToActor(CurrentTarget, 100.f, true);
 
-	UE_LOG(LogTemp, Verbose,
-		TEXT("MoveToActor(%s) Result = %d"),
-		*CurrentTarget->GetName(),
-		(int32)Result);
+	// UE_LOG(LogTemp, Verbose,
+	// 	TEXT("MoveToActor(%s) Result = %d"),
+	// 	*CurrentTarget->GetName(),
+	// 	(int32)Result);
 }
