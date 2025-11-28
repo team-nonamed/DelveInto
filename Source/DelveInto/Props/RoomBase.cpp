@@ -14,7 +14,25 @@ ARoomBase::ARoomBase()
  */
 void ARoomBase::NotifyPlayerEntered(APlayableCharacter* Player)
 {
-	OnPlayerEnterRoom.Broadcast(Player);
+	if (!Player)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Player does not exist"));
+		return;
+	}
+		
+
+	int32& Count = PlayerOverlapCounts.FindOrAdd(Player);
+
+	Count++;
+
+	// 0 → 1 되는 순간이 “실제 입장”
+	if (Count == 1)
+	{
+		UE_LOG(LogTemp, Display, TEXT("Success"));
+		OnPlayerEnterRoom.Broadcast(Player);
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("%i"), Count);
 }
 
 /**
@@ -23,7 +41,26 @@ void ARoomBase::NotifyPlayerEntered(APlayableCharacter* Player)
  */
 void ARoomBase::NotifyPlayerExited(APlayableCharacter* Player)
 {
-	OnPlayerExitRoom.Broadcast(Player);
+	if (!Player)
+		return;
+
+	int32* CountPtr = PlayerOverlapCounts.Find(Player);
+	if (!CountPtr)
+	{
+		UE_LOG(LogTemp, Display, TEXT("?"))
+		// 대응되는 Enter가 없었거나, 이미 지워진 경우
+		return;
+	}
+
+	(*CountPtr)--;
+
+	if (*CountPtr <= 0)
+	{
+		UE_LOG(LogTemp, Display, TEXT("나가다!"))
+		// 완전히 방에서 나간 순간
+		PlayerOverlapCounts.Remove(Player);
+		OnPlayerExitRoom.Broadcast(Player);
+	}
 }
 
 

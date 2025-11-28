@@ -77,4 +77,8 @@ protected:
 // 	// Called every frame
 // 	virtual void Tick(float DeltaTime) override;
 
+private:
+	// 플레이어별 “겹침 카운트”
+	UPROPERTY()
+	TMap<TWeakObjectPtr<APlayableCharacter>, int32> PlayerOverlapCounts;
 };
