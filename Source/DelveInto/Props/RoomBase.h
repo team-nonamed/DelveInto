@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Character/PlayableCharacter.h"
+#include "Characters/PlayableCharacter.h"
 #include "GameFramework/Actor.h"
 #include "RoomBase.generated.h"
 

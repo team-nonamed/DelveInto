@@ -6,7 +6,6 @@
 UAnimatedImageWidget::UAnimatedImageWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	
 }
 
 void UAnimatedImageWidget::NativeConstruct()

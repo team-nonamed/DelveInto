@@ -10,7 +10,7 @@
 /**
  * 여러 장의 Texture2D를 일정 FPS로 순환해서 보여주는 UMG 위젯
  */
-UCLASS(Blueprintable)
+UCLASS(Abstract, Blueprintable)
 class DELVEINTO_API UAnimatedImageWidget : public UUserWidget
 {
 	GENERATED_BODY()
