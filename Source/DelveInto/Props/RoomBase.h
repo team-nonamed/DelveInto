@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Characters/PlayableCharacter.h"
+#include "Entities/Characters/FPSPlayer.h"
 #include "GameFramework/Actor.h"
 #include "RoomBase.generated.h"
 
@@ -16,26 +16,26 @@ struct FRoomConnectionInfo
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, BluePrintReadOnly)
-	bool bIsConnectedToNorth;
+	bool bIsConnectedToNorth = false;
 	
 	UPROPERTY(EditDefaultsOnly, BluePrintReadOnly)
-	bool bIsConnectedToSouth;
+	bool bIsConnectedToSouth = false;
 	
 	UPROPERTY(EditDefaultsOnly, BluePrintReadOnly)
-	bool bIsConnectedToEast;
+	bool bIsConnectedToEast = false;
 
 	UPROPERTY(EditDefaultsOnly, BluePrintReadOnly)
-	bool bIsConnectedToWest;
+	bool bIsConnectedToWest = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	bool bIsConnectedToUp;
+	bool bIsConnectedToUp = false;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	bool bIsConnectedToDown;
+	bool bIsConnectedToDown = false;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerEnterRoom, APlayableCharacter*, Player);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerExitRoom, APlayableCharacter*, Player);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerEnterRoom, AFPSPlayer*, Player);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerExitRoom, AFPSPlayer*, Player);
 
 /**
  * 방의 기본 Actor 클래스
@@ -63,11 +63,11 @@ public:
 
 	// Room 입장 Trigger가 Trig 되었을 때 호출하는 함수
 	UFUNCTION(BlueprintCallable, Category="Room|Event")
-	void NotifyPlayerEntered(APlayableCharacter* Player);
+	void NotifyPlayerEntered(AFPSPlayer* Player);
 
 	// Room 퇴장 Trigger가 Trig 되었을 때 호출하는 함수
 	UFUNCTION(BlueprintCallable, Category="Room|Event")
-	void NotifyPlayerExited(APlayableCharacter* Player);
+	void NotifyPlayerExited(AFPSPlayer* Player);
 
 protected:
 	// Called when the game starts or when spawned
@@ -80,5 +80,5 @@ protected:
 private:
 	// 플레이어별 “겹침 카운트”
 	UPROPERTY()
-	TMap<TWeakObjectPtr<APlayableCharacter>, int32> PlayerOverlapCounts;
+	TMap<TWeakObjectPtr<AFPSPlayer>, int32> PlayerOverlapCounts;
 };

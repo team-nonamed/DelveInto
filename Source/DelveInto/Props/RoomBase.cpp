@@ -10,9 +10,9 @@ ARoomBase::ARoomBase()
 
 /**
  * Room 입장 Trigger가 Trig 되었을 때 호출하는 함수
- * @param Player `Room`에 입장한 PlayableCharacter
+ * @param Player `Room`에 입장한 FPSPlayer
  */
-void ARoomBase::NotifyPlayerEntered(APlayableCharacter* Player)
+void ARoomBase::NotifyPlayerEntered(AFPSPlayer* Player)
 {
 	if (!Player)
 	{
@@ -39,7 +39,7 @@ void ARoomBase::NotifyPlayerEntered(APlayableCharacter* Player)
  * Room 퇴장 Trigger가 Trig 되었을 때 호출하는 함수
  * @param Player `Room`에서 나간 PlayableCharacter
  */
-void ARoomBase::NotifyPlayerExited(APlayableCharacter* Player)
+void ARoomBase::NotifyPlayerExited(AFPSPlayer* Player)
 {
 	if (!Player)
 		return;
