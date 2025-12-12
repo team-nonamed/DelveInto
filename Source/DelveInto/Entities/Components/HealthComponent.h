@@ -4,67 +4,101 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Entities/Contexts/HealthChangeContext.h"
+#include "Entities/Interactions/HealthInstigation.h"
 #include "HealthComponent.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewHealth, float, MaxHealth);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);
-DECLARE_LOG_CATEGORY_EXTERN(LogHealth, Log, All);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnHurt,
+	FHealthChangeContext, Context
+);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnRecover,
+	FHealthChangeContext, Context
+);
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(
+	FOnDeath,
+	FHealthChangeContext, LastHealthChangeContext
+);
+
+/**
+ * 체력을 관리하는 Component
+ * - 체력 상태를 보관하고
+ * - 피해/회복/공격 적용을 처리하며
+ * - 체력 변화/사망 이벤트를 브로드캐스트한다.
+ */
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class DELVEINTO_API UHealthComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
-	// Sets default values for this component's properties
-	UHealthComponent();
 
 protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
+#pragma region Attributes
+	/**
+	 * 최대 체력
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Health")
+	float MaxHealth = 100.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-	bool bDebugHealthLog = false;
+	/**
+	 * 현재 체력
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category="Health")
+	float CurrentHealth = 100.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Configuration")
-	bool bInitWithMaxHealth;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Health")
-	float MaxHealth;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Health")
-	float CurrentHealth;
-
-	UFUNCTION()
-	void ApplyDamage(
-		AActor* Victim,
-		float Damage,
-		const UDamageType* DamageType,
-		AController* InstigatedBy,
-		AActor* Attacker
-	);
-
-	void SetHealth(float NewHealth);
+	/**
+	 * 사망 여부 (OnDeath 중복 방지)
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Health")
+	bool bIsDead = false;
+#pragma endregion
 
 public:
-	UFUNCTION(BlueprintCallable, Category="Health")
-	void TakeDamage(float Amount);
+#pragma region Actions
+	UPROPERTY(BlueprintAssignable, Category="Health")
+	FOnHurt OnHurtStart;
+
+	UPROPERTY(BlueprintAssignable, Category="Health")
+	FOnHurt OnHurtEnd;
+
+	UPROPERTY(BlueprintAssignable, Category="Health")
+	FOnRecover OnRecoverStart;
+
+	UPROPERTY(BlueprintAssignable, Category="Health")
+	FOnRecover OnRecoverEnd;
+
+	UPROPERTY(BlueprintAssignable, Category="Health")
+	FOnDeath OnDeathStart;
+
+	UPROPERTY(BlueprintAssignable, Category="Health")
+	FOnDeath OnDeathEnd;
+#pragma endregion
+	/**
+	 * Constructor
+	 */
+	UHealthComponent();
 
 	UFUNCTION(BlueprintCallable, Category="Health")
-	void Heal(float Amount);
+	void ApplyInstigation(const FHealthInstigation& Instigation);
 
 	UFUNCTION(BlueprintPure, Category="Health")
-	bool IsDead() const { return CurrentHealth <= 0.f; }
-
-	UPROPERTY(BlueprintAssignable, Category="Health")
-	FOnHealthChanged OnHealthChanged;
-
-	UPROPERTY(BlueprintAssignable, Category="Health")
-	FOnDeath OnDeath;
+	bool IsDead() const { return bIsDead; }
 
 	UFUNCTION(BlueprintPure, Category="Health")
 	float GetCurrentHealth() const { return CurrentHealth; }
 
 	UFUNCTION(BlueprintPure, Category="Health")
 	float GetMaxHealth() const { return MaxHealth; }
+
+protected:
+	// Called when the game starts
+	virtual void BeginPlay() override;
+	
+	virtual void ApplyHurt(FHealthChangeContext& Context);
+
+	virtual void ApplyRecover(FHealthChangeContext& Context);
 };

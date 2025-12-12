@@ -25,12 +25,6 @@ public class DelveInto : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] {
 			"DelveInto",
-			"DelveInto/Variant_Horror",
-			"DelveInto/Variant_Horror/UI",
-			"DelveInto/Variant_Shooter",
-			"DelveInto/Variant_Shooter/AI",
-			"DelveInto/Variant_Shooter/UI",
-			"DelveInto/Variant_Shooter/Weapons"
 		});
 
 		// Uncomment if you are using Slate UI
