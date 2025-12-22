@@ -27,7 +27,7 @@ enum class EPlayerInputContext : uint8
  * 캐릭터의 입력을 처리하는 Class
  */
 UCLASS()
-class DELVEINTO_API ADefaultPlayerController : public APlayerController
+class DELVEINTO_API ADefaultPlayerController: public APlayerController
 {
 	GENERATED_BODY()
 
@@ -36,18 +36,13 @@ class DELVEINTO_API ADefaultPlayerController : public APlayerController
 //TODO: Action들의 Binding을 Blueprint에서 하거나 혹은 등록용 메서드를 따로 만들어 관리해야 함
 public:
 #pragma region Actions
-	/**
-	 * Binding하리라 기대하는 이동 Event
-	 */
-	UPROPERTY(BlueprintAssignable, Category = "Behaviour Events")
+
+	UPROPERTY(BlueprintAssignable, Category="Behaviour Events")
 	FOnMove OnMove;
 
-	/**
-	 * Binding하리라 기대하는 Look Event
-	 */
-	UPROPERTY(BlueprintAssignable, Category = "Behaviour Events")
+	UPROPERTY(BlueprintAssignable, Category="Behaviour Events")
 	FOnLook OnLook;
-
+	
 	/**
 	 * Binding하리라 기대하는 달리기 시작 Event
 	 */

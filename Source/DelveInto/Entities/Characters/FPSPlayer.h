@@ -29,7 +29,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	/**
-	 * Input Controller의 OnMove를 받는 Callback
+	 * Controller의 OnMove를 받는 Callback
 	 * @param DeltaMove 움직일 Move Vector 값
 	 */
 	UFUNCTION()

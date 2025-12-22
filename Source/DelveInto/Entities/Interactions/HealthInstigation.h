@@ -13,6 +13,14 @@ enum class EHealthInstigationType: uint8
 };
 
 // TODO: 필요한 경우 Instigation 위에 Instigation이라는 상위 개념을 넣고 Instigation과 Heal로 분리
+
+/*
+ * TODO: Instigator와 Receiver을 AActor보다 더 구체적인 Class로 변경해야 함
+ *	- 최종 피해량과 넉백량을 계산할 수 있는 Method도 구현하면 좋을듯?
+ *		- 이건 그냥 Receiver Class에게 책임을 넘기는게 맞는 것 같다
+ *		- 넘겨서 설계함
+ */
+
 USTRUCT(BlueprintType)
 struct FHealthInstigation
 {
@@ -77,11 +85,4 @@ struct FHealthInstigation
 	 */
 	FHealthInstigation() = default;
 #pragma endregion
-
-	/*
-	 * TODO: Instigator와 Receiver을 AActor보다 더 구체적인 Class로 변경해야 함
-	 *	- 최종 피해량과 넉백량을 계산할 수 있는 Method도 구현하면 좋을듯?
-	 *		- 이건 그냥 Receiver Class에게 책임을 넘기는게 맞는 것 같다
-	 *		- 넘겨서 설계함
-	 */
 };
