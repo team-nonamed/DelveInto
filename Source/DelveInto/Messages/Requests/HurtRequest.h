@@ -3,7 +3,7 @@
 #include "HurtRequest.generated.h"
 
 USTRUCT(BlueprintType)
-struct FHurtRequest
+struct FHurtRequest: public AbstractContext
 {
 	GENERATED_BODY()
 

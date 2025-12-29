@@ -3,7 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Entities/Messages/Requests/HurtRequest.h"
+#include "Messages/Requests/HurtRequest.h"
+#include "Messages/Results/HurtResult.h"
 #include "UObject/Object.h"
 #include "HurtReceiver.generated.h"
 
@@ -22,8 +23,5 @@ class DELVEINTO_API IHurtReceiver
 
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Damageable")
-	void ReceiveHurt(FHurtRequest& Request);
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Meta Data")
-	const FString GetName() const;
+	FHurtResult ReceiveHurt(FHurtRequest& Request);
 };
