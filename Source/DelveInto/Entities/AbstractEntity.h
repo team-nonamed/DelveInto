@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Handlers/AbstractHealthHandler.h"
 #include "Interfaces/Hurts/HurtReceiver.h"
 #include "AbstractEntity.generated.h"
 
@@ -13,6 +14,12 @@ class DELVEINTO_API AAbstractEntity : public AActor, public IHurtReceiver
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditDefaultsOnly, Category="Components")
+	TSubclassOf<UAbstractHealthHandler> HealthHandlerClass;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UAbstractHealthHandler> HealthHandler;
+	
 	// Sets default values for this actor's properties
 	AAbstractEntity();
 
@@ -23,4 +30,7 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION(BlueprintCallable, Category="Components|Health")
+	virtual FHurtResult ReceiveHurt(const FHurtRequest& Request) override;
 };

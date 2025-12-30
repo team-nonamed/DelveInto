@@ -4,25 +4,24 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "NameProvider.generated.h"
+#include "AttackProvider.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
-class UNameProvider : public UInterface
+class UAttackProvider : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 이름을 가지고 있는 Class들이 구현할 Interface
+ * 
  */
-class DELVEINTO_API INameProvider
+class DELVEINTO_API IAttackProvider
 {
 	GENERATED_BODY()
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	FString GetCurrentName();
-
-	TArray<FString> GetAllNames();
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Damage")
+	float GetBaseAttack();
 };

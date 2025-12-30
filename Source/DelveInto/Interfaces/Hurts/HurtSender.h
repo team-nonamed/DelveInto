@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "HurtReceiver.h"
+#include "Interfaces/Sender.h"
 #include "Messages/Results/HurtResult.h"
 #include "UObject/Interface.h"
 #include "HurtSender.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE()
-class UHurtSender : public UInterface
+class UHurtSender : public USender
 {
 	GENERATED_BODY()
 };

@@ -10,6 +10,7 @@
 
 /**
  * 피해를 입을 수 있는 Actor들이 구현하는 Interface
+ * 
  */
 UINTERFACE(BlueprintType)
 class UHurtReceiver : public UInterface
@@ -22,6 +23,5 @@ class DELVEINTO_API IHurtReceiver
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Damageable")
-	FHurtResult ReceiveHurt(FHurtRequest& Request);
+	virtual FHurtResult ReceiveHurt(const FHurtRequest& Request) = 0;
 };

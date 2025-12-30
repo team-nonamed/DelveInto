@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Messages/Requests/HurtRequest.h"
 #include "Messages/Results/HurtResult.h"
 #include "UObject/Interface.h"
 #include "HurtHandler.generated.h"
@@ -23,6 +24,5 @@ class DELVEINTO_API IHurtHandler
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Hurt")
-	FHurtResult HandleHurt(FHurtRequest& Request);
+	virtual FHurtResult HandleHurt(const FHurtRequest& Request) = 0;
 };

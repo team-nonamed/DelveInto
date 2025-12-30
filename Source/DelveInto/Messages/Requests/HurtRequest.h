@@ -1,21 +1,17 @@
 ﻿#pragma once
 
-#include "HurtRequest.generated.h"
-
 USTRUCT(BlueprintType)
-struct FHurtRequest: public AbstractContext
+struct FHurtRequest
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Entities")
-	TWeakObjectPtr<AActor> Sender;
+	TScriptInterface<class IHurtInitiator> Sender = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Entities")
-	TWeakObjectPtr<AActor> Receiver;
+	TScriptInterface<class IHurtReceiver> Receiver = nullptr;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Rate")
-	float BaseRate;
+	float Damage = 0.0f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Health | Effects")
-	float Knockback;
+	bool bIsCritical = false;
+
+	// 공격 타입은 존재하지 않음
 };

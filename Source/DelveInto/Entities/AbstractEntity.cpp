@@ -24,3 +24,8 @@ void AAbstractEntity::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+FHurtResult AAbstractEntity::ReceiveHurt(const FHurtRequest& Request)
+{
+	checkf(false, TEXT("ReceiveHurt must be implemented in derived class."));
+	return FHurtResult();
+}
