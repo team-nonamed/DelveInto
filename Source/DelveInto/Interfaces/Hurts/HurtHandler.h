@@ -9,7 +9,7 @@
 #include "HurtHandler.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE()
+UINTERFACE(BlueprintType)
 class UHurtHandler : public UInterface
 {
 	GENERATED_BODY()

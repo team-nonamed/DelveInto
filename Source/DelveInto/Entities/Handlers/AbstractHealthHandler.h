@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Interfaces/Hurts/HurtHandler.h"
-#include "Interfaces/Hurts/HurtModifier.h"
+#include "Interfaces/Damages/DamageModifier.h"
 #include "AbstractHealthHandler.generated.h"
 
 
@@ -25,27 +25,27 @@ public:
 
 protected:
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-	float MaxHealth;
+	float		MaxHealth;
 
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-	float CurrentHealth;
+	float		CurrentHealth;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool		IsDead;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnHurt OnHurt;
+	FOnHurt		OnHurt;
 
 	UPROPERTY(BlueprintAssignable)
-	FOnDeath OnDeath;
+	FOnDeath	OnDeath;
 	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-	TArray<TScriptInterface<IHurtModifier>> Modifiers;
+	TArray<TScriptInterface<IDamageModifier>> Modifiers;
 	
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
 
 	virtual FHurtResult HandleHurt(const FHurtRequest& Request) override;
 };

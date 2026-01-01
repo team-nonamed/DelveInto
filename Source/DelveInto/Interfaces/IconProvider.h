@@ -4,23 +4,23 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "NameProvider.generated.h"
+#include "IconProvider.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
-class UNameProvider : public UInterface
+class UIconProvider : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * 이름을 가지고 있는 Class들이 구현할 Interface
+ * Icon을 제공하는 Class들이 구현할 Interface
  */
-class DELVEINTO_API INameProvider
+class DELVEINTO_API IIconProvider
 {
 	GENERATED_BODY()
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual FText GetCurrentName() = 0;
+	virtual TObjectPtr<const UTexture2D> GetCurrentIcon() = 0;
 };

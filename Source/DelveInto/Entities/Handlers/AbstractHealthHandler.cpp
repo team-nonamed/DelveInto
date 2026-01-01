@@ -3,7 +3,6 @@
 
 #include "AbstractHealthHandler.h"
 
-#include "VectorUtil.h"
 #include "Messages/InnerResult.h"
 
 
@@ -12,9 +11,7 @@ UAbstractHealthHandler::UAbstractHealthHandler()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 
@@ -22,41 +19,33 @@ UAbstractHealthHandler::UAbstractHealthHandler()
 void UAbstractHealthHandler::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// ...
-	
-}
-
-
-// Called every frame
-void UAbstractHealthHandler::TickComponent(float DeltaTime, ELevelTick TickType,
-                                           FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	// ...
 }
 
 FHurtResult UAbstractHealthHandler::HandleHurt(const FHurtRequest& Request)
 {
+	UE_LOG(LogActor, Display, TEXT("Handle Hurt"))
+	
+#pragma region 추가 피해량 계산
 	float CurrentAdditive = 0.0f;
 	float CurrentMultiplicative = 1.0f;
 
 	FInnerResult InnerResult = FInnerResult();
 
-	for (const TScriptInterface<IHurtModifier>& Modifier : Modifiers)
+	for (const TScriptInterface<IDamageModifier>& Modifier : Modifiers)
 	{
 		if (!Modifier)
 		{
 			continue;
 		}
 		
-		CurrentAdditive += Modifier->GetHurtAdditive();
-		CurrentMultiplicative += (Modifier->GetHurtMultiplicative()-1);
+		CurrentAdditive += Modifier->GetDamageAdditive();
+		CurrentMultiplicative += Modifier->GetDamageMultiplierDelta();
 
 		InnerResult.ApplyModifier(Modifier->GetCancelled(), Modifier->GetPriority());
 	}
 
+#pragma endregion
+	
 	if (InnerResult.IsCancelled())
 	{
 		return FHurtResult(EResultType::Cancelled);
@@ -64,29 +53,28 @@ FHurtResult UAbstractHealthHandler::HandleHurt(const FHurtRequest& Request)
 	
 	const float CurrentDamage = Request.Damage * CurrentMultiplicative + CurrentAdditive;
 
-	if (CurrentDamage <= 0.0f)
+	if (CurrentDamage <= DBL_EPSILON)
 	{
+		
 		return FHurtResult(EResultType::Nullified);
 	}
 
-	
-
-	FHurtResult Result = FHurtResult();
-
-	Result.Sender = Request.Sender;
-	Result.Receiver = Request.Receiver;
-	Result.AdditiveRate = CurrentAdditive;
-	Result.MultiplicativeRate = CurrentMultiplicative;
-	Result.OriginalHealth = CurrentHealth;
-	Result.OriginalDecreaseRate = Request.Damage;
-	Result.Knockback = 0.0f;
-	Result.TotalDecreaseRate = CurrentDamage;
-	Result.Result = EResultType::Success;
+	FHurtResult Result = FHurtResult(
+		Request.Instigator,
+		Request.Receiver,
+		CurrentHealth,
+		Request.Damage,
+		CurrentAdditive,
+		CurrentMultiplicative,
+		CurrentDamage,
+		0.0f,
+		EResultType::Success
+		);
 
 	CurrentHealth = FMath::Clamp(CurrentHealth - CurrentDamage, 0.0f, MaxHealth);
 	OnHurt.Broadcast(Result);
 
-	if (CurrentHealth <= 0.0f)
+	if (!IsDead && CurrentHealth <= 0.0f)
 	{
 		OnDeath.Broadcast(Result);
 	}

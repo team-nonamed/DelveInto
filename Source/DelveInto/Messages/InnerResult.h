@@ -20,7 +20,7 @@ public:
 	
 	bool IsCancelled() const { return bIsCancelled; }
 
-	FInnerResult();
+	FInnerResult() = default;
 
 	FInnerResult(const bool InIsCancelled, const uint8 InPriority)
 		: bIsCancelled(InIsCancelled)

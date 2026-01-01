@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "Messages/Cancellation.h"
 #include "Messages/InnerResult.h"
 
 #include "HurtContext.generated.h"
@@ -10,7 +9,7 @@ struct FHurtContext
 	GENERATED_BODY()
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Entities")
-	TScriptInterface<class IHurtInitiator> Sender;
+	TScriptInterface<class IAttackInstigator> Instigator;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Entities")
 	TWeakObjectPtr<AActor> Receiver;
@@ -30,7 +29,7 @@ struct FHurtContext
 	FInnerResult Cancellation = FInnerResult();
 
 	FHurtContext()
-		: Sender(nullptr)
+		: Instigator(nullptr)
 		, Receiver(nullptr)
 		, BaseRate(0.0f)
 		, AdditiveRate(0.0f)

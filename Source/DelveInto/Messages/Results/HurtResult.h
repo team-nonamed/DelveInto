@@ -8,26 +8,26 @@ struct FHurtResult
 {
 	GENERATED_BODY()
 
-	UPROPERTY(Transient, Category="Hurt | Entities")
-	TScriptInterface<class IHurtInitiator> Sender;
+	UPROPERTY(Transient)
+	TScriptInterface<class IAttackInstigator> Instigator;
 
-	UPROPERTY(Transient, Category="Hurt | Entities")
+	UPROPERTY(Transient)
 	TScriptInterface<class IHurtReceiver> Receiver;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Rate")
 	float OriginalHealth;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Rate")
-	float OriginalDecreaseRate;
+	float IncomingDamage;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Rate")
-	float AdditiveRate;
+	float AdditiveDamage;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Rate")
-	float MultiplicativeRate;
+	float DamageMultiplier;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Hurt | Rate")
-	float TotalDecreaseRate;
+	float FinalDamage;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hurt | Effects")
 	float Knockback;
@@ -36,33 +36,33 @@ struct FHurtResult
 	EResultType Result;
 
 	FHurtResult()
-		: Sender(nullptr)
+		: Instigator(nullptr)
 		, Receiver(nullptr)
 		, OriginalHealth(0.0f)
-		, OriginalDecreaseRate(0.0f)
-		, AdditiveRate(0.0f)
-		, MultiplicativeRate(0.0f)
-		, TotalDecreaseRate(0.0f)
+		, IncomingDamage(0.0f)
+		, AdditiveDamage(0.0f)
+		, DamageMultiplier(0.0f)
+		, FinalDamage(0.0f)
 		, Knockback(0.0f)
 		, Result(EResultType::Unknown)
 	{
 	}
 
 	FHurtResult(const EResultType Result)
-		: Sender(nullptr)
+		: Instigator(nullptr)
 		, Receiver(nullptr)
 		, OriginalHealth(0.0f)
-		, OriginalDecreaseRate(0.0f)
-		, AdditiveRate(0.0f)
-		, MultiplicativeRate(0.0f)
-		, TotalDecreaseRate(0.0f)
+		, IncomingDamage(0.0f)
+		, AdditiveDamage(0.0f)
+		, DamageMultiplier(0.0f)
+		, FinalDamage(0.0f)
 		, Knockback(0.0f)
 		, Result(Result)
 	{
 	}
 
 	FHurtResult(
-		const TScriptInterface<IHurtInitiator>& InSender,
+		const TScriptInterface<IAttackInstigator>& InInstigator,
 		const TScriptInterface<IHurtReceiver>& InReceiver,
 		const float InOriginalHealth,
 		const float InOriginalDecreaseRate,
@@ -71,13 +71,13 @@ struct FHurtResult
 		const float InTotalDecreaseRate,
 		const float InKnockback,
 		const EResultType InResult)
-		: Sender(InSender)
+		: Instigator(InInstigator)
 		, Receiver(InReceiver)
 		, OriginalHealth(InOriginalHealth)
-		, OriginalDecreaseRate(InOriginalDecreaseRate)
-		, AdditiveRate(InAdditiveRate)
-		, MultiplicativeRate(InMultiplicativeRate)
-		, TotalDecreaseRate(InTotalDecreaseRate)
+		, IncomingDamage(InOriginalDecreaseRate)
+		, AdditiveDamage(InAdditiveRate)
+		, DamageMultiplier(InMultiplicativeRate)
+		, FinalDamage(InTotalDecreaseRate)
 		, Knockback(InKnockback)
 		, Result(InResult)
 	{
