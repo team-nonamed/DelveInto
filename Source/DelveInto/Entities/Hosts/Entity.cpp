@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Entities/Characters/Entity.h"
+#include "Entities/Hosts/Entity.h"
 
 // Sets default values
 AEntity::AEntity()

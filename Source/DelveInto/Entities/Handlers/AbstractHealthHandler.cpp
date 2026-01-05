@@ -39,7 +39,7 @@ FHurtResult UAbstractHealthHandler::HandleHurt(const FHurtRequest& Request)
 		}
 		
 		CurrentAdditive += Modifier->GetDamageAdditive();
-		CurrentMultiplicative += Modifier->GetDamageMultiplierDelta();
+		CurrentMultiplicative += Modifier->GetDamageMultiplierAdditive();
 
 		InnerResult.ApplyModifier(Modifier->GetCancelled(), Modifier->GetPriority());
 	}

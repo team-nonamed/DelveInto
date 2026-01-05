@@ -4,7 +4,6 @@
 #include "AbstractAttackHandler.h"
 
 #include "Messages/InnerResult.h"
-#include "TraceServices/Model/TableImport.h"
 
 
 // Sets default values for this component's properties
@@ -36,13 +35,15 @@ void UAbstractAttackHandler::TickComponent(float DeltaTime, ELevelTick TickType,
 FHurtResult UAbstractAttackHandler::IssueAttack(
 	TScriptInterface<IAttackInstigator>& Instigator,
 	TScriptInterface<IHurtReceiver>& Receiver,
-	TScriptInterface<IDamageModifier>& Skill,
+	ESkillDesignator SkillDesignator,
 	const bool IsCritical)
 {
 	if (!Receiver)
 	{
 		return FHurtResult(EResultType::Invalid);
 	}
+
+	TObjectPtr<const USkillInstance> const Skill = Skills->GetSkill(SkillDesignator);
 
 	if (!Skill)
 	{
@@ -51,7 +52,7 @@ FHurtResult UAbstractAttackHandler::IssueAttack(
 
 	// 공격자가 들고 있는 무기와 사용한 스킬의 피해량 증감 계산
 	float BaseDamage = Weapon->GetBaseDamage();
-	BaseDamage *= 1 + Skill->GetDamageMultiplierDelta();
+	BaseDamage *= 1 + Skill->GetDamageMultiplierAdditive();
 	BaseDamage += Skill->GetDamageAdditive();
 	
 	if (BaseDamage <= DBL_EPSILON)
@@ -72,7 +73,7 @@ FHurtResult UAbstractAttackHandler::IssueAttack(
 		}
 
 		CurrentAdditive += Modifier->GetDamageAdditive();
-		CurrentMultiplier += Modifier->GetDamageMultiplierDelta();
+		CurrentMultiplier += Modifier->GetDamageMultiplierAdditive();
 
 		InnerResult.ApplyModifier(Modifier->GetCancelled(), Modifier->GetPriority());
 	}
@@ -94,4 +95,18 @@ FHurtResult UAbstractAttackHandler::IssueAttack(
 	return Receiver->ReceiveHurt(Request);
 }
 
+float UAbstractAttackHandler::GetWeaponDamage() const
+{
+	return Weapon->GetBaseDamage();
+}
+
+float UAbstractAttackHandler::GetCurrentAttackStat() const
+{
+	return Attack;
+}
+
+float UAbstractAttackHandler::GetBaseAttackDamage() const
+{
+	return Weapon->GetBaseDamage() + Attack;
+}
 

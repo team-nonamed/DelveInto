@@ -7,7 +7,7 @@
 #include "HealthHandler.generated.h"
 
 
-UCLASS(ClassGroup=(HealthHandler), meta=(BlueprintSpawnableComponent))
+UCLASS(BlueprintType, ClassGroup=(HealthHandler), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API UHealthHandler : public UAbstractHealthHandler
 {
 	GENERATED_BODY()

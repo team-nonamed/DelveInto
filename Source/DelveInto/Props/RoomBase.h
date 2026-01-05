@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Entities/Characters/FPSPlayer.h"
+#include "Entities/Hosts/FPSPlayer.h"
 #include "GameFramework/Actor.h"
 #include "RoomBase.generated.h"
 

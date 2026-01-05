@@ -35,6 +35,6 @@ public:
 	 */
 	virtual FHurtResult IssueAttack(TScriptInterface<IAttackInstigator>& Instigator,
 		TScriptInterface<IHurtReceiver>& Receiver,
-		TScriptInterface<IDamageModifier>& Skill,
+		ESkillDesignator Skill,
 		bool IsCritical = false) = 0;
 };

@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 
-#include "Entities/Characters/DefaultEnemyCharacter.h"
-#include "Entities/Characters/FPSPlayer.h"
+#include "Entities/Hosts/DefaultEnemyCharacter.h"
+#include "Entities/Hosts/FPSPlayer.h"
 #include "GameFramework/Actor.h"
 #include "EnemySpawner.generated.h"
 

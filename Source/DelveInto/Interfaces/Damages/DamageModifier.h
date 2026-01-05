@@ -25,7 +25,7 @@ public:
 	 * 추가로 곱해질 피해량 배율을 제공하는 Method
 	 * @return 추가로 곱해질 피해량 배율, 기본 값은 보통 0
 	 */
-	virtual float GetDamageMultiplierDelta() const = 0;
+	virtual float GetDamageMultiplierAdditive() const = 0;
 
 	virtual bool GetCancelled() const = 0;
 

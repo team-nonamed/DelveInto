@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Data/AbstractItemData.h"
+#include "Items/AbstractItemData.h"
 #include "Interfaces/Damages/DamageProvider.h"
 #include "Types/RangeShape.h"
 #include "WeaponData.generated.h"
