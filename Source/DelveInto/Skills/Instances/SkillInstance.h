@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interfaces/Damages/DamageProvider.h"
+#include "Interfaces/Damages/DamageModifier.h"
 #include "Skills/Data/SkillData.h"
 #include "UObject/Object.h"
 #include "SkillInstance.generated.h"
@@ -17,15 +17,15 @@ class DELVEINTO_API USkillInstance : public UObject, public IDamageModifier
 	GENERATED_BODY()
 
 public:
-	void Init(const TObjectPtr<USkillData> InData);
+	void Init(const USkillData* InData);
 
 	TObjectPtr<const USkillData> GetSkillData() const { return Data; }
 
-	bool CanActivate(const TObjectPtr<UWorld> World) const;
+	bool CanActivate(const UWorld* World) const;
 
-	bool IsOnCooldown(const TObjectPtr<UWorld> World) const;
+	bool IsOnCooldown(const UWorld* World) const;
 
-	bool TryActivate(const TObjectPtr<UWorld> World);
+	bool TryActivate(const UWorld* World);
 
 	virtual float GetDamageAdditive() const override;
 
@@ -36,14 +36,11 @@ public:
 	virtual uint8 GetPriority() const override;
 
 protected:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Meta)
 	TObjectPtr<const USkillData> Data = nullptr;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category=Meta)
 	uint8 Level = 1;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	uint8 MaxLevel;
 
 	float CooldownEndTime = 0.0f;
 	

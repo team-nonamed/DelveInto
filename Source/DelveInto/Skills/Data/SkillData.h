@@ -22,13 +22,16 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Information)
 	FText Description;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Information)
+	uint8 MaxLevel;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Attack)
 	float Additive;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Attack)
 	float MultiplierAdditive;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Attack")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Attack)
 	float CooldownSeconds;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cancel Config")
@@ -37,6 +40,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Cancel Config")
 	uint8 CancelPriority;
 
+	virtual uint8 GetMaxLevel() const { return MaxLevel; }
 	virtual bool GetCancelled() const override;
 	virtual float GetDamageAdditive() const override;
 	virtual float GetDamageMultiplierAdditive() const override;

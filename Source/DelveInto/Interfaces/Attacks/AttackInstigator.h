@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Messages/Results/HurtResult.h"
 #include "UObject/Interface.h"
 #include "AttackInstigator.generated.h"
 
 // This class does not need to be modified.
-UINTERFACE()
+UINTERFACE(BlueprintType)
 class UAttackInstigator : public UInterface
 {
 	GENERATED_BODY()
@@ -22,5 +23,5 @@ class DELVEINTO_API IAttackInstigator
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	
+	virtual FHurtResult InstigateAttack() = 0;
 };

@@ -25,5 +25,5 @@ class DELVEINTO_API ISkillProvider
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual TObjectPtr<const USkillInstance> GetSkill(ESkillDesignator SkillDesignator) const = 0;
+	virtual USkillInstance* GetSkill(ESkillDesignator SkillDesignator) const = 0;
 };

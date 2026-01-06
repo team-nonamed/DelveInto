@@ -3,24 +3,24 @@
 
 #include "SkillInstance.h"
 
-void USkillInstance::Init(const TObjectPtr<USkillData> InData)
+void USkillInstance::Init(const USkillData* InData)
 {
 	Data = InData;
 }
 
-bool USkillInstance::CanActivate(const TObjectPtr<UWorld> World) const
+bool USkillInstance::CanActivate(const UWorld* World) const
 {
 	if (!Data) return false;
 	return !IsOnCooldown(World);
 }
 
-bool USkillInstance::IsOnCooldown(const TObjectPtr<UWorld> World) const
+bool USkillInstance::IsOnCooldown(const UWorld* World) const
 {
 	if (!World) return false;
 	return World->GetTimeSeconds() < CooldownEndTime;
 }
 
-bool USkillInstance::TryActivate(const TObjectPtr<UWorld> World)
+bool USkillInstance::TryActivate(const UWorld* World)
 {
 	if (!World || !Data) return false;
 	if (!CanActivate(World)) return false;

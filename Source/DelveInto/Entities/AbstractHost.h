@@ -13,6 +13,9 @@
 #include "AbstractHost.generated.h"
 
 UCLASS(BlueprintType, Blueprintable)
+/**
+ * 
+ */
 class DELVEINTO_API AAbstractHost : public ACharacter, public IHurtReceiver
 {
 	GENERATED_BODY()

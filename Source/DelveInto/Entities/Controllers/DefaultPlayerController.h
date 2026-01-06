@@ -14,6 +14,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInteractEnd);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOpenInventoryStart);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOpenInventoryEnd);
 
+//TODO: 삭제 및 마이그레이션
 UENUM(BlueprintType)
 enum class EPlayerInputContext : uint8
 {

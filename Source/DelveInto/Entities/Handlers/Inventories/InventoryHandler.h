@@ -8,7 +8,7 @@
 #include "InventoryHandler.generated.h"
 
 
-UCLASS(ClassGroup=(InventoryHandler), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API UInventoryHandler : public UActorComponent
 {
 	GENERATED_BODY()

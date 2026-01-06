@@ -12,7 +12,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnHurt, const FHurtResult&, Result);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeath, const FHurtResult&, LastResult);
 
-UCLASS(Abstract)
+UCLASS(Abstract, ClassGroup=(Attack), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API UAbstractHealthHandler : public UActorComponent, public IHurtHandler
 {
 	GENERATED_BODY()

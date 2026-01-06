@@ -8,7 +8,7 @@
 #include "SkillHandler.generated.h"
 
 
-UCLASS(ClassGroup=(SkillHandler), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Attack), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API USkillHandler : public UAbstractSkillHandler
 {
 	GENERATED_BODY()

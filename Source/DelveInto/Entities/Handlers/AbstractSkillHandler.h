@@ -8,7 +8,7 @@
 #include "AbstractSkillHandler.generated.h"
 
 
-UCLASS(Abstract)
+UCLASS(Abstract, ClassGroup=("Attack|Skill"), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API UAbstractSkillHandler : public UActorComponent, public ISkillProvider
 {
 	GENERATED_BODY()
@@ -22,8 +22,11 @@ protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	TMap<ESkillDesignator, TObjectPtr<const USkillData>> DefaultSkills;
+
+	UPROPERTY(Transient)
 	TMap<ESkillDesignator, TObjectPtr<USkillInstance>> Skills;
 
 public:
-	virtual TObjectPtr<const USkillInstance> GetSkill(ESkillDesignator Designator) const override;
+	virtual USkillInstance* GetSkill(ESkillDesignator Designator) const override;
 };

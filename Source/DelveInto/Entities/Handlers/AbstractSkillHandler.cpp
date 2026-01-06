@@ -22,11 +22,25 @@ void UAbstractSkillHandler::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
+	// 기본 Skill Data를 Instance화
+	for (const TPair<ESkillDesignator, TObjectPtr<const USkillData>>& Pair: DefaultSkills)
+	{
+		const ESkillDesignator Key = Pair.Key;
+		const USkillData* SkillData = Pair.Value;
+
+		if (!SkillData)
+		{
+			continue;
+		}
+
+		USkillInstance* Inst = NewObject<USkillInstance>(this);
+		Inst->Init(SkillData);
+		Skills.Add(Key, Inst);
+	}
 	
 }
 
-TObjectPtr<const USkillInstance> UAbstractSkillHandler::GetSkill(ESkillDesignator Designator) const
+USkillInstance* UAbstractSkillHandler::GetSkill(ESkillDesignator Designator) const
 {
 	if (!Skills.Contains(Designator))
 	{
