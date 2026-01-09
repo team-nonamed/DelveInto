@@ -9,6 +9,7 @@
 #include "Handlers/AbstractHealthHandler.h"
 #include "Handlers/Healths/HealthHandler.h"
 #include "Handlers/Skills/SkillHandler.h"
+#include "Interfaces/Attacks/AttackInstigator.h"
 #include "Interfaces/Hurts/HurtReceiver.h"
 #include "AbstractHost.generated.h"
 
@@ -16,7 +17,7 @@ UCLASS(BlueprintType, Blueprintable)
 /**
  * 
  */
-class DELVEINTO_API AAbstractHost : public ACharacter, public IHurtReceiver
+class DELVEINTO_API AAbstractHost : public ACharacter, public IHurtReceiver, public IAttackInstigator
 {
 	GENERATED_BODY()
 
@@ -51,4 +52,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="Components|Health")
 	virtual FHurtResult ReceiveHurt(const FHurtRequest& Request) override;
+
+	UFUNCTION(BlueprintCallable, Category="Components|Health")
+	virtual FHurtResult InstigateAttack(ESkillDesignator Designator) override;
 };

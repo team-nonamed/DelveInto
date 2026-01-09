@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Items/AbstractItemData.h"
+#include "Items/AbstractItemDefinition.h"
 #include "Interfaces/Damages/DamageProvider.h"
 #include "Types/RangeShape.h"
 #include "WeaponData.generated.h"
@@ -12,7 +12,7 @@
  * 
  */
 UCLASS(BlueprintType)
-class DELVEINTO_API UWeaponData : public UAbstractItemData, public IDamageProvider
+class DELVEINTO_API UWeaponData : public UAbstractItemDefinition, public IDamageProvider
 {
 	GENERATED_BODY()
 

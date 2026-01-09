@@ -11,6 +11,7 @@ enum class EItemCategory: uint8
 UENUM(BlueprintType)
 enum class EWeaponCategory: uint8
 {
+	Null,
 	Melee,
 	Ranged
 };

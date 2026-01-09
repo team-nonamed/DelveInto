@@ -23,5 +23,5 @@ class DELVEINTO_API IAttackInstigator
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual FHurtResult InstigateAttack() = 0;
+	virtual FHurtResult InstigateAttack(ESkillDesignator Designator) = 0;
 };

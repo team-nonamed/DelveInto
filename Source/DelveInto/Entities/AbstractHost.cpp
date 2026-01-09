@@ -86,3 +86,7 @@ FHurtResult AAbstractHost::ReceiveHurt(const FHurtRequest& Request)
 
 	return HealthHandler->HandleHurt(Request);
 }
+
+FHurtResult AAbstractHost::InstigateAttack(ESkillDesignator Designator)
+{
+}

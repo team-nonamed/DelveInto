@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Skills/Data/SkillData.h"
 #include "Skills/Instances/SkillInstance.h"
 #include "Types/SkillDesignator.h"
 #include "UObject/Interface.h"

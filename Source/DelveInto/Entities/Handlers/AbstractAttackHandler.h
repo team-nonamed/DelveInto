@@ -4,10 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Interfaces/SkillProvider.h"
 #include "Interfaces/Attacks/AttackIssuer.h"
 #include "Interfaces/Damages/DamageModifier.h"
 #include "Interfaces/Damages/DamageProvider.h"
+#include "Interfaces/Skills/SkillProvider.h"
 #include "Interfaces/Stats/AttackStatProvider.h"
 #include "AbstractAttackHandler.generated.h"
 
@@ -40,13 +40,24 @@ public:
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
 	virtual FHurtResult IssueAttack(
-		TScriptInterface<IAttackInstigator>& Instigator,
-		TScriptInterface<IHurtReceiver>& Receiver,
-		ESkillDesignator SkillDesignator,
-		bool IsCritical = false) override;
+		ESkillDesignator Designator) override;
 
 	virtual float GetWeaponDamage() const override;
 	virtual float GetCurrentAttackStat() const override;
 	virtual float GetBaseAttackDamage() const override;
+
+	static TArray<TScriptInterface<IHurtReceiver>> FindActorsInCone(
+		UWorld* World,
+		const FVector& Origin,
+		const FVector& Forward,
+		float Radius,
+		float HalfAngleDeg,
+		const FCollisionObjectQueryParams& ObjectQueryParams,
+		ECollisionChannel TraceChannelForLOS,
+		const TArray<AActor*>& ActorsToIgnore,
+		bool bRequireLineOfSight,
+		bool bIgnoreZ,
+		int32 MaxTargets = 0
+	);
 	
 };

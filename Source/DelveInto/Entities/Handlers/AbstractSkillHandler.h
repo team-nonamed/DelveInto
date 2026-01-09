@@ -4,11 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Interfaces/SkillProvider.h"
+#include "Interfaces/Skills/SkillProvider.h"
 #include "AbstractSkillHandler.generated.h"
 
 
-UCLASS(Abstract, ClassGroup=("Attack|Skill"), meta=(BlueprintSpawnableComponent))
+UCLASS(Abstract, ClassGroup=("Attack"), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API UAbstractSkillHandler : public UActorComponent, public ISkillProvider
 {
 	GENERATED_BODY()

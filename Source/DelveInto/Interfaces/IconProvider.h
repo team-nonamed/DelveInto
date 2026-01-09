@@ -22,5 +22,5 @@ class DELVEINTO_API IIconProvider
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual TObjectPtr<const UTexture2D> GetCurrentIcon() = 0;
+	virtual TObjectPtr<const UTexture2D> GetCurrentIcon() const = 0;
 };
