@@ -3,6 +3,8 @@
 
 #include "InventoryHandler.h"
 
+#include "Items/ItemInstance.h"
+
 
 // Sets default values for this component's properties
 UInventoryHandler::UInventoryHandler()
@@ -25,8 +27,14 @@ void UInventoryHandler::TickComponent(float DeltaTime, ELevelTick TickType,
 	// ...
 }
 
-TWeakInterfacePtr<IDamageProvider> UInventoryHandler::GetActivatedWeapon() const
+const UItemInstance* UInventoryHandler::GetActivatedWeapon() const
 {
 	return Weapons[ActivatedWeaponIndex];
+}
+
+int UInventoryHandler::SetActivatedWeaponIndex(const int Index)
+{
+	ActivatedWeaponIndex = Index % Weapons.Num();
+	return ActivatedWeaponIndex;
 }
 

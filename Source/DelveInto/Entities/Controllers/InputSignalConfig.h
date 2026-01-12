@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "InputTriggers.h"
 #include "Engine/DataAsset.h"
-#include "Types/InputSignalType.h"
+#include "Types/Inputs.h"
 #include "InputSignalConfig.generated.h"
 
 USTRUCT(BlueprintType)

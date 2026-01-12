@@ -5,6 +5,7 @@
 
 #include "Engine/OverlapResult.h"
 #include "Engine/World.h"
+#include "Items/ItemDefinition.h"
 
 
 #include "Messages/InnerResult.h"
@@ -41,22 +42,27 @@ FHurtResult UAbstractAttackHandler::IssueAttack(
 	ESkillDesignator Designator)
 {
 	const USkillInstance* Skill = Skills->GetSkill(Designator);
-
-	const 
-
-	const TScriptInterface<IHurtReceiver> Receiver = this->FindActorsInCone(
-
-	)
-	
-	if (!Receiver)
-	{
-		return FHurtResult(EResultType::Invalid);
-	}
+	const UItemInstance* Weapon = Inventory->GetActivatedWeapon();
 
 	if (!Skill)
 	{
 		return FHurtResult(EResultType::Invalid);
 	}
+
+	if (!Weapon)
+	{
+		return FHurtResult(EResultType::Invalid);
+	}
+
+	TSet<EWeaponCategory> SkillWeaponCategory = Skill->GetSkillData()->AllowedWeaponCategory;
+	EWeaponCategory WeaponCategory = Weapon->GetWeaponCategory();
+
+	if (!SkillWeaponCategory.Contains(WeaponCategory))
+	{
+		return FHurtResult(EResultType::InvalidWeapon);
+	}
+	
+	Weapon->DoAttack(Skill, Modifiers);
 
 	// 공격자가 들고 있는 무기와 사용한 스킬의 피해량 증감 계산
 	float BaseDamage = Weapon->GetBaseDamage();

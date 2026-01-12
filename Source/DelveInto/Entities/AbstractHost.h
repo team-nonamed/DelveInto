@@ -25,6 +25,9 @@ protected:
 	UPROPERTY(BlueprintReadWrite, BlueprintSetter=SetHealthHandler, EditDefaultsOnly, Category="Handlers")
 	TObjectPtr<UAbstractHealthHandler> HealthHandler = nullptr;
 
+	/**
+	 * 공격
+	 */
 	UPROPERTY(BlueprintReadWrite, BlueprintSetter=SetAttackHandler, EditDefaultsOnly, Category="Handlers")
 	TObjectPtr<UAbstractAttackHandler> AttackHandler = nullptr;
 

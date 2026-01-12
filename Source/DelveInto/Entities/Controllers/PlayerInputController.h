@@ -6,7 +6,7 @@
 #include "InputAction.h"
 #include "InputSignalConfig.h"
 #include "GameFramework/PlayerController.h"
-#include "Types/InputSignalType.h"
+#include "Types/Inputs.h"
 #include "PlayerInputController.generated.h"
 
 /**

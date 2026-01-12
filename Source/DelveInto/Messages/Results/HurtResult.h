@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Types/ResultType.h"
+#include "Types/Hurts.h"
 
 #include "HurtResult.generated.h"
 

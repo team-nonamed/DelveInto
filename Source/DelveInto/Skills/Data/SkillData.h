@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
 #include "Interfaces/Damages/DamageModifier.h"
+#include "Types/ItemCategory.h"
 #include "SkillData.generated.h"
 
 /**
@@ -21,6 +22,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Information)
 	FText Description;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Information)
+	TSet<EWeaponCategory> AllowedWeaponCategory;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Information)
 	uint8 MaxLevel;

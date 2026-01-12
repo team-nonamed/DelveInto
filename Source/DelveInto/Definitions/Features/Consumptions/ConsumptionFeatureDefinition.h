@@ -4,16 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "AttackFeature.generated.h"
+#include "ConsumptionFeatureDefinition.generated.h"
 
 /**
  * 
  */
 UCLASS(BlueprintType)
-class DELVEINTO_API UAttackFeature : public UPrimaryDataAsset
+class DELVEINTO_API UConsumptionFeatureDefinition : public UDataAsset
 {
 	GENERATED_BODY()
-
-public:
-	
 };

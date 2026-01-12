@@ -28,4 +28,9 @@ float USkillData::GetCooldownSeconds() const
 	return CooldownSeconds;
 }
 
+FPrimaryAssetId USkillData::GetPrimaryId() const
+{
+	return GetPrimaryAssetId();
+}
+
 

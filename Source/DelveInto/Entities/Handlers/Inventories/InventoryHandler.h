@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Interfaces/Damages/DamageProvider.h"
+#include "Instances/Items/ItemInstance.h"
 #include "InventoryHandler.generated.h"
 
+
+class UItemInstance;
 
 UCLASS(ClassGroup=(Inventory), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API UInventoryHandler : public UActorComponent
@@ -19,7 +21,7 @@ public:
 
 protected:
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
-	TArray<TScriptInterface<IDamageProvider>> Weapons;
+	TArray<TObjectPtr<const UItemInstance>> Weapons;
 
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	int ActivatedWeaponIndex;
@@ -29,5 +31,9 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
-	virtual TWeakInterfacePtr<IDamageProvider> GetActivatedWeapon() const;
+	virtual const UItemInstance* GetActivatedWeapon() const;
+
+	int SetActivatedWeaponIndex(const int Index);
+
+	
 };

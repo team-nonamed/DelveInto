@@ -9,6 +9,8 @@
 #include "Interfaces/Damages/DamageProvider.h"
 #include "Interfaces/Skills/SkillProvider.h"
 #include "Interfaces/Stats/AttackStatProvider.h"
+#include "Inventories/InventoryHandler.h"
+#include "Items/ItemInstance.h"
 #include "AbstractAttackHandler.generated.h"
 
 
@@ -21,8 +23,6 @@ public:
 	// Sets default values for this component's properties
 	UAbstractAttackHandler();
 
-	TScriptInterface<IDamageProvider> Weapon;
-
 	TWeakInterfacePtr<ISkillProvider> Skills;
 
 	TArray<TScriptInterface<IDamageModifier>> Modifiers;
@@ -31,6 +31,9 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UInventoryHandler> Inventory;
+	
 	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
 	float Attack;
 
@@ -46,18 +49,6 @@ public:
 	virtual float GetCurrentAttackStat() const override;
 	virtual float GetBaseAttackDamage() const override;
 
-	static TArray<TScriptInterface<IHurtReceiver>> FindActorsInCone(
-		UWorld* World,
-		const FVector& Origin,
-		const FVector& Forward,
-		float Radius,
-		float HalfAngleDeg,
-		const FCollisionObjectQueryParams& ObjectQueryParams,
-		ECollisionChannel TraceChannelForLOS,
-		const TArray<AActor*>& ActorsToIgnore,
-		bool bRequireLineOfSight,
-		bool bIgnoreZ,
-		int32 MaxTargets = 0
-	);
+	
 	
 };
