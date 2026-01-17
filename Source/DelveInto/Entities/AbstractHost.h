@@ -1,61 +1,50 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
-#include "Handlers/AbstractAttackHandler.h"
-#include "Handlers/AbstractHealthHandler.h"
-#include "Handlers/Healths/HealthHandler.h"
-#include "Handlers/Skills/SkillHandler.h"
-#include "Interfaces/Attacks/AttackInstigator.h"
-#include "Interfaces/Hurts/HurtReceiver.h"
+#include "Interfaces/Input/CombatInputReceiver.h"
+#include "Interfaces/Hurts/HurtHandler.h"
 #include "AbstractHost.generated.h"
 
-UCLASS(BlueprintType, Blueprintable)
+class UAttackHandler;
+class UAbstractSkillHandler;
+class UInventoryHandler;
+
 /**
- * 
+ * Host(논리적 진입점) Actor.
+ * - 핸들러 컴포넌트를 소유/연결하고
+ * - InputController로부터 전달받은 입력을 Handler로 라우팅
+ * - IHurtHandler도 Actor 레벨에서 구현하고 내부 HealthHandler(미구현)로 위임하는 형태를 권장
  */
-class DELVEINTO_API AAbstractHost : public ACharacter, public IHurtReceiver, public IAttackInstigator
+UCLASS(Abstract)
+class DELVEINTO_API AAbstractHost
+	: public ACharacter
+	, public ICombatInputReceiver
+	, public IHurtHandler
 {
 	GENERATED_BODY()
 
-protected:
-	UPROPERTY(BlueprintReadWrite, BlueprintSetter=SetHealthHandler, EditDefaultsOnly, Category="Handlers")
-	TObjectPtr<UAbstractHealthHandler> HealthHandler = nullptr;
-
-	/**
-	 * 공격
-	 */
-	UPROPERTY(BlueprintReadWrite, BlueprintSetter=SetAttackHandler, EditDefaultsOnly, Category="Handlers")
-	TObjectPtr<UAbstractAttackHandler> AttackHandler = nullptr;
-
-	UPROPERTY(BlueprintReadWrite, BlueprintSetter=SetSkillHandler, EditDefaultsOnly, Category="Handlers")
-	TObjectPtr<UAbstractSkillHandler> SkillHandler;
-	
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
 public:
-	// Sets default values for this actor's properties
 	AAbstractHost();
 
-	UFUNCTION(BlueprintSetter)
-	void SetHealthHandler(UAbstractHealthHandler* Handler);
+	// ICombatInputReceiver
+	virtual void HandleSkillInput(ESkillSlot Designator, ETriggerEvent TriggerEvent) override;
 
-	UFUNCTION(BlueprintSetter)
-	void SetAttackHandler(UAbstractAttackHandler* Handler);
+	// IHurtHandler (가상함수: HealthHandler로 위임하는 방식 권장)
+	virtual FHurtResult HandleHurt(const FHurtRequest& Request) override;
 
-	UFUNCTION(BlueprintSetter)
-	void SetSkillHandler(UAbstractSkillHandler* Handler);
-	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	// 핸들러 접근자
+	UAttackHandler* GetAttackHandler() const { return AttackHandler; }
+	UAbstractSkillHandler* GetSkillHandler() const { return SkillHandler; }
+	UInventoryHandler* GetInventoryHandler() const { return InventoryHandler; }
 
-	UFUNCTION(BlueprintCallable, Category="Components|Health")
-	virtual FHurtResult ReceiveHurt(const FHurtRequest& Request) override;
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Handlers")
+	TObjectPtr<UAttackHandler> AttackHandler;
 
-	UFUNCTION(BlueprintCallable, Category="Components|Health")
-	virtual FHurtResult InstigateAttack(ESkillDesignator Designator) override;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Handlers")
+	TObjectPtr<UAbstractSkillHandler> SkillHandler;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Handlers")
+	TObjectPtr<UInventoryHandler> InventoryHandler;
 };

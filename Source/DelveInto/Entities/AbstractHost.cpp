@@ -1,92 +1,32 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿#include "Entities/AbstractHost.h"
+#include "Combat/AttackHandler.h"
+#include "Skills/Handlers/AbstractSkillHandler.h"
+#include "Items/InventoryHandler.h"
 
-
-#include "AbstractHost.h"
-
-#include "Handlers/Healths/HealthHandler.h"
-
-
-// Sets default values
 AAbstractHost::AAbstractHost()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	// Host는 핸들러들을 “기본 서브오브젝트”로 소유하는 것을 권장
+	InventoryHandler = CreateDefaultSubobject<UInventoryHandler>(TEXT("InventoryHandler"));
+	SkillHandler     = CreateDefaultSubobject<UAbstractSkillHandler>(TEXT("SkillHandler"));
+	AttackHandler    = CreateDefaultSubobject<UAttackHandler>(TEXT("AttackHandler"));
 }
 
-void AAbstractHost::SetHealthHandler(UAbstractHealthHandler* Handler)
+void AAbstractHost::HandleSkillInput(ESkillSlot Designator, ETriggerEvent TriggerEvent)
 {
-
-	if (HealthHandler == nullptr)
+	if (AttackHandler)
 	{
-		HealthHandler = Handler;
-	}
-
-}
-
-void AAbstractHost::SetAttackHandler(UAbstractAttackHandler* Handler)
-{
-	if (AttackHandler == nullptr)
-	{
-		AttackHandler = Handler;
+		AttackHandler->HandleInput(Designator, TriggerEvent);
 	}
 }
 
-void AAbstractHost::SetSkillHandler(UAbstractSkillHandler* Handler)
+FHurtResult AAbstractHost::HandleHurt(const FHurtRequest& Request)
 {
-	if (SkillHandler == nullptr)
-	{
-		SkillHandler = Handler;
-	}
-}
+	// 여기서는 최소 구현만 둡니다.
+	// 실제로는 HealthHandler 컴포넌트로 위임하는 것을 권장:
+	// return HealthHandler->HandleHurt(Request);
 
-// Called when the game starts or when spawned
-void AAbstractHost::BeginPlay()
-{
-	Super::BeginPlay();
-
-	if (HealthHandler == nullptr)
-	{
-		HealthHandler = FindComponentByClass<UAbstractHealthHandler>();
-	}
-
-	if (SkillHandler == nullptr)
-	{
-		SkillHandler = FindComponentByClass<UAbstractSkillHandler>();
-	}
-
-	if (AttackHandler == nullptr)
-	{
-		AttackHandler = FindComponentByClass<UAbstractAttackHandler>();
-	}
-
-	if (HealthHandler != nullptr)
-	{
-		UE_LOG(LogActor, Log, TEXT("Health handler %s"), *HealthHandler->GetName());
-	}
-
-	if (SkillHandler != nullptr)
-		UE_LOG(LogActor, Log, TEXT("Skill handler %s"), *SkillHandler->GetName());
-
-	if (AttackHandler != nullptr)
-		UE_LOG(LogActor, Log, TEXT("Attack %s"), *AttackHandler->GetName());
-}
-
-// Called every frame
-void AAbstractHost::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-FHurtResult AAbstractHost::ReceiveHurt(const FHurtRequest& Request)
-{
-	if (HealthHandler == nullptr)
-	{
-		return FHurtResult(EResultType::Invalid);
-	}
-
-	return HealthHandler->HandleHurt(Request);
-}
-
-FHurtResult AAbstractHost::InstigateAttack(ESkillDesignator Designator)
-{
+	FHurtResult R;
+	R.bSuccess = true;
+	R.AppliedDamage = Request.Damage;
+	return R;
 }

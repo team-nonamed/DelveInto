@@ -18,10 +18,13 @@ public class DelveInto : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"GameplayTags",
+			"NavigationSystem",
+			"Paper2D"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate",
+			"SlateCore" });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"DelveInto",
