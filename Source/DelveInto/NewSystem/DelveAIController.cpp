@@ -1,12 +1,11 @@
 ﻿#include "DelveAIController.h"
 #include "Kismet/GameplayStatics.h"
 #include "DelveEnemy.h"
+#include "DelveEnemy_Jumper.h"
 
 void ADelveAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-    
-	// 플레이어 찾기
 	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 }
 
@@ -14,36 +13,65 @@ void ADelveAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 몬스터가 죽었으면 AI 중지
-	if (ADelveEnemy* MyEnemy = Cast<ADelveEnemy>(GetPawn()))
+	// 제어 중인 폰을 기본 Enemy로 캐스팅
+	ADelveEnemy* BaseEnemy = Cast<ADelveEnemy>(GetPawn());
+	if (!BaseEnemy || BaseEnemy->bIsDead) 
 	{
-		if (MyEnemy->IsDead()) return; // IsDead() Getter 하나 만들면 좋음 (혹은 bIsDead public 접근)
+		StopMovement();
+		return;
 	}
 
-	// [수정된 부분] 플레이어가 없으면 다시 찾기 시도
-	if (PlayerPawn == nullptr)
+	// 플레이어 다시 찾기 (만약 없다면)
+	if (!PlayerPawn) PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+	if (!PlayerPawn) return;
+
+	// 거리 계산
+	float Distance = FVector::Dist(BaseEnemy->GetActorLocation(), PlayerPawn->GetActorLocation());
+
+	// 공격 중이면 이동 금지 (공통)
+	if (BaseEnemy->bIsAttacking)
 	{
-		PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		StopMovement();
+		return;
 	}
-	
-	// 플레이어가 존재하고, 거리가 가까우면 추적 (예: 15미터 이내)
-	if (PlayerPawn)
+
+	// --- 행동 결정 ---
+
+	// 1. 기본 공격 (초근접)
+	if (Distance <= BaseEnemy->AttackRange)
 	{
-		float Distance = FVector::Dist(GetPawn()->GetActorLocation(), PlayerPawn->GetActorLocation());
+		StopMovement();
+		// 플레이어 보기
+		FVector Dir = PlayerPawn->GetActorLocation() - BaseEnemy->GetActorLocation();
+		Dir.Z = 0;
+		BaseEnemy->SetActorRotation(Dir.Rotation());
         
-		// --- 디버깅 로그 추가 ---
-		// 화면에 매 프레임 거리를 출력합니다. (초록색 글씨)
-		GEngine->AddOnScreenDebugMessage(-1, 0.0f, FColor::Green, FString::Printf(TEXT("Distance: %f"), Distance));
-		// ---------------------
-
-		if (Distance < 1500.0f) 
-		{
-			MoveToActor(PlayerPawn, 100.0f);
-		}
+		BaseEnemy->Attack();
 	}
 	else
 	{
-		// 플레이어를 못 찾았다면?
-		UE_LOG(LogTemp, Warning, TEXT("PlayerPawn is NULL!"));
+		// 2. 점프 공격 시도 (Jumper인지 확인)
+		ADelveEnemy_Jumper* Jumper = Cast<ADelveEnemy_Jumper>(BaseEnemy);
+        
+		// Jumper가 맞고, 거리가 적당하고, 너무 가깝지 않다면(150 이상)
+		if (Jumper && Distance <= Jumper->JumpAttackRange && Distance > 150.0f)
+		{
+			StopMovement();
+			// 플레이어 보기
+			FVector Dir = PlayerPawn->GetActorLocation() - BaseEnemy->GetActorLocation();
+			Dir.Z = 0;
+			BaseEnemy->SetActorRotation(Dir.Rotation());
+            
+			Jumper->JumpAttack(PlayerPawn);
+		}
+		// 3. 추적 (너무 멀면)
+		else if (Distance < 1500.0f)
+		{
+			MoveToActor(PlayerPawn, 50.0f);
+		}
+		else
+		{
+			StopMovement();
+		}
 	}
 }
