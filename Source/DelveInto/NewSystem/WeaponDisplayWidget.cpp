@@ -65,10 +65,10 @@ void UWeaponDisplayWidget::UpdateBrush(UPaperSprite* Sprite)
 	NewBrush.SetResourceObject(Sprite);
     
 	// 원본 비율 유지를 원하면 아래 주석 해제 (Image 위젯 설정을 따르는 게 보통 더 편함)
-	if (Sprite->GetSourceSize().X > 0 && Sprite->GetSourceSize().Y > 0)
-	{
-	   NewBrush.ImageSize = FVector2D(Sprite->GetSourceSize().X, Sprite->GetSourceSize().Y);
-	}
+	// if (Sprite->GetSourceSize().X > 0 && Sprite->GetSourceSize().Y > 0)
+	// {
+	//    NewBrush.ImageSize = FVector2D(Sprite->GetSourceSize().X, Sprite->GetSourceSize().Y);
+	// }
 
 	WeaponImage->SetBrush(NewBrush);
 }

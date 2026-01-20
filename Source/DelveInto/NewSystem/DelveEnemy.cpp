@@ -50,19 +50,19 @@ void ADelveEnemy::OnConstruction(const FTransform& Transform)
     EnemyFlipbook->SetRelativeLocation(FVector(0.0f, 0.0f, -HalfHeight));
     EnemyFlipbook->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 
-    // 3. 스케일 자동 조절
+    // 3. 스케일 자동 조절 (에디터 전용 로직으로 변경)
+#if WITH_EDITOR 
     if (bAutoResizeToCapsule && EnemyFlipbook->GetFlipbook())
     {
         UPaperFlipbook* CurrentFlipbook = EnemyFlipbook->GetFlipbook();
         
-        // [수정됨] 플립북 자체가 아니라, 플립북 안의 '첫 번째 스프라이트'를 가져옵니다.
         if (CurrentFlipbook->GetNumKeyFrames() > 0)
         {
             UPaperSprite* FirstSprite = CurrentFlipbook->GetSpriteAtFrame(0);
 
             if (FirstSprite)
             {
-                // 스프라이트에서 정보 추출
+                // GetSourceSize()는 에디터 전용 데이터이므로 WITH_EDITOR 안에서만 안전함
                 float SourcePixelHeight = FirstSprite->GetSourceSize().Y;
                 float PPU = FirstSprite->GetPixelsPerUnrealUnit();
                 
@@ -70,7 +70,6 @@ void ADelveEnemy::OnConstruction(const FTransform& Transform)
 
                 float SpriteWorldHeight = SourcePixelHeight / PPU;
 
-                // 비율 계산
                 if (SpriteWorldHeight > 0.0f)
                 {
                     float NewScale = CapsuleTotalHeight / SpriteWorldHeight;
@@ -79,6 +78,7 @@ void ADelveEnemy::OnConstruction(const FTransform& Transform)
             }
         }
     }
+#endif
 }
 
 void ADelveEnemy::Tick(float DeltaTime)
