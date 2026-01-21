@@ -5,3 +5,5 @@
     type = copy
 ['remote "storage"']
     url = gdrive://1w0RlKOMeTssjKbiuEBwOaKWf26sGP0tW
+    gdrive_client_id = 1069006043866-2ofsie36va7jjpbhgeidh1ve06ctdce9.apps.googleusercontent.com
+    gdrive_client_secret = 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
