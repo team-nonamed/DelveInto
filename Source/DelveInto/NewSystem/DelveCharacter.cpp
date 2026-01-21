@@ -1,4 +1,6 @@
 ﻿#include "DelveCharacter.h"
+
+#include "DelveProjectile.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "EnhancedInputComponent.h"
@@ -103,6 +105,55 @@ void ADelveCharacter::Look(const FInputActionValue& Value)
 }
 
 void ADelveCharacter::OnPrimaryAttack() { if (CurrentWeapon) CurrentWeapon->TryPrimaryAttack(); }
-void ADelveCharacter::OnSecondaryAttack(const FInputActionValue& Value) { if (CurrentWeapon) CurrentWeapon->TrySecondaryAttack(Value.Get<bool>()); }
+void ADelveCharacter::OnSecondaryAttack(const FInputActionValue& Value)
+{
+    // 버튼을 막 눌렀을 때 (Started 대용)
+    if (!bIsCharging)
+    {
+        bIsCharging = true;
+        ChargeStartTime = GetWorld()->GetTimeSeconds();
+        
+        // 무기에게 차징 시작 알림 (애니메이션 재생용)
+        if (CurrentWeapon) CurrentWeapon->TrySecondaryAttack(true);
+    }
+    // 버튼을 뗐을 때 (Completed 시점)
+    else
+    {
+        FinalizeSecondaryAttack();
+    }
+}
+
+void ADelveCharacter::FinalizeSecondaryAttack()
+{
+    if (!bIsCharging) return;
+
+    bIsCharging = false;
+    float HeldTime = GetWorld()->GetTimeSeconds() - ChargeStartTime;
+    
+    // 차징 비율 계산 (0.0 ~ 1.0)
+    float ChargeRatio = FMath::Clamp(HeldTime / MaxChargeTime, 0.0f, 1.0f);
+
+    // 무기에게 차징 종료 알림 (발사 애니메이션 등)
+    if (CurrentWeapon) CurrentWeapon->TrySecondaryAttack(false);
+
+    // 투사체(검기) 생성 로직
+    if (SwordWaveClass)
+    {
+        // 카메라 앞 방향으로 발사 위치 설정
+        FVector SpawnLocation = FirstPersonCamera->GetComponentLocation() + (FirstPersonCamera->GetForwardVector() * 100.0f);
+        FRotator SpawnRotation = FirstPersonCamera->GetComponentRotation();
+
+        FActorSpawnParameters SpawnParams;
+        SpawnParams.Owner = this;
+        SpawnParams.Instigator = this;
+
+        ADelveProjectile* Projectile = GetWorld()->SpawnActor<ADelveProjectile>(SwordWaveClass, SpawnLocation, SpawnRotation, SpawnParams);
+        if (Projectile)
+        {
+            // [핵심] 차징된 비율을 투사체에 전달
+            Projectile->InitializeChargeStats(ChargeRatio);
+        }
+    }
+}
 void ADelveCharacter::OnSkillQ() { if (CurrentWeapon) CurrentWeapon->TrySkillQ(); }
 void ADelveCharacter::OnSkillE() { if (CurrentWeapon) CurrentWeapon->TrySkillE(); }

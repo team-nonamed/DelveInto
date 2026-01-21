@@ -26,7 +26,7 @@ void ALongsword::TryPrimaryAttack()
     // Radius: 200 (사거리)
     // HalfAngle: 60 (좌우 120도)
     // HalfHeight: AttackHeight (플레이어 키만큼 위아래 커버)
-    ApplyDamageSphericalCone(Damage, 250.0f, 60.0f);
+    ApplyDamageSphericalCone(Damage, 400.0f, 15.0f);
 
     // 4. 콤보 인덱스 증가 및 초기화 타이머
     CurrentComboIndex = (CurrentComboIndex + 1) % PrimaryComboAnims.Num(); // 배열 길이만큼 순환

@@ -66,11 +66,22 @@ public:
     // --- 무기 UI 업데이트 함수 ---
     void UpdateWeaponUI(UPaperFlipbook* NewFlipbook, bool bLoop);
 
+    // --- 차징 관련 변수 (추가) ---
+    UPROPERTY(EditAnywhere, Category = "Combat | Charge")
+    TSubclassOf<class ADelveProjectile> SwordWaveClass; // 에디터에서 생성한 BP_SwordWave 할당
+
+    UPROPERTY(EditAnywhere, Category = "Combat | Charge")
+    float MaxChargeTime = 1.5f; // 1.5초면 풀차징
+
 private:
+    float ChargeStartTime = 0.0f;
+    bool bIsCharging = false;
+    
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
     void OnPrimaryAttack();
     void OnSecondaryAttack(const FInputActionValue& Value);
+    void FinalizeSecondaryAttack(); // 차징 완료 후 실제 발사 로직
     void OnSkillQ();
     void OnSkillE();
 };

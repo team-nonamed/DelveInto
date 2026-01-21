@@ -1,0 +1,6 @@
+[core]
+    remote = storage
+[cache]
+    type = copy
+['remote "storage"']
+    url = gdrive://1w0RlKOMeTssjKbiuEBwOaKWf26sGP0tW

@@ -219,13 +219,13 @@ void AWeaponBase::ApplyDamageSphericalCone(float Damage, float Radius, float Hal
         Radius,
         FMath::DegreesToRadians(HalfAngle), // 각도
         FMath::DegreesToRadians(HalfAngle),
-        12,
+        60,
         FColor::Orange, // 주황색으로 표시
         false,
-        1.0f
+        3.0f
     );
     // 구형 끝부분을 표현하기 위해 원도 하나 그립니다 (옵션)
-    // DrawDebugSphere(World, Origin, Radius, 12, FColor::Orange, false, 1.0f);
+    // DrawDebugSphere(World, Origin, Radius, 30, FColor::Orange, false, 3.0f);
 
 
     // 3. Broad Phase: 일단 사거리(구) 안에 있는 애들을 다 찾습니다.
