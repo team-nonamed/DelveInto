@@ -1,0 +1,264 @@
+[33mcommit 57b38acd665f13ed44dd90f755ed7ae523b6488f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Tue Jan 20 15:56:36 2026 +0900
+
+    add: projectile asset
+
+[33mcommit 0e59e449393de3ac1f4a51491971bf21132bb2d6[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Tue Jan 20 15:17:40 2026 +0900
+
+    chore: Packinging Config Change
+
+[33mcommit 318fcc7612d3d1a4d2d95a907222d86a81550260[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Tue Jan 20 15:17:09 2026 +0900
+
+    add: New Assets
+
+[33mcommit 710a6d7ed00549fad9609893e7e0c502c92d7f9b[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Tue Jan 20 03:09:50 2026 +0900
+
+    add: combat
+
+[33mcommit 5e474f309a8faf2a0826416277f4fee39be0f47e[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Sun Jan 18 04:06:14 2026 +0900
+
+    Change: New System으로 Migration
+
+[33mcommit 05af31ff5328fecaa96beb7543267eba00c2d777[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Mon Jan 12 16:58:19 2026 +0900
+
+    햣 ㅁdd
+
+[33mcommit ee47172d718c9420d2a9e78a30b26c3cbd8e275d[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Jan 9 17:04:39 2026 +0900
+
+    dklljkljjl
+
+[33mcommit 5d4f6f5c34dd0cd2f09c33f24c8366fecd940fdf[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Tue Jan 6 17:06:06 2026 +0900
+
+    add: Sensor Layer
+
+[33mcommit 1a1b3f491745ae4b1d5e52e0be8127ae91f3e43a[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Mon Jan 5 16:51:31 2026 +0900
+
+    migrate: Handler System
+
+[33mcommit a494e97047e83fbc94948649790422d631fe241a[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Jan 2 16:56:31 2026 +0900
+
+    add: Inventory and Skill
+
+[33mcommit 54b93e625e357d3daf6f2b200ee51010f887b503[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Thu Jan 1 17:56:27 2026 +0900
+
+    add: Item
+
+[33mcommit 3bbfdfbf7091f1fa77cf12ef2767049ac4ef0028[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Tue Dec 30 20:14:15 2025 +0900
+
+    add: 짱짱큰 커밋
+
+[33mcommit 94dc0c07f3c63e25d0b72440fd1bfe8c84af250d[m
+Author: arkyjun <ekdrmsdlsp@gmail.com>
+Date:   Tue Dec 30 13:18:56 2025 +0900
+
+    add: Test Level 1
+
+[33mcommit 4bb34b7da28ad9ea239994d512d99a586135010d[m
+Author: arkyjun <ekdrmsdlsp@gmail.com>
+Date:   Tue Dec 30 10:37:56 2025 +0900
+
+    Add TestLevel try
+
+[33mcommit f7e249a53e5aa5e69d0a52ed44c242e89baeae5a[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Tue Dec 30 02:34:37 2025 +0900
+
+    git: A big commit
+
+[33mcommit 32110775c2fe953a9125fdfd26afcd95bfea975b[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Mon Dec 22 12:29:11 2025 +0900
+
+    refactor
+
+[33mcommit 385f53be82b4c5515f1ee330d43bedd1c15850fd[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Dec 12 17:54:33 2025 +0900
+
+    refactor: HealthComponent
+
+[33mcommit b30789adc40274c9decf670fab8839d97bb11aa9[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Dec 12 04:01:11 2025 +0900
+
+    refactor: PlayableCharacter to FPSPlayer
+
+[33mcommit 7f82cee6508409a83b931ff4271ae8e2ee883cf5[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Dec 5 17:54:48 2025 +0900
+
+    A big Commit
+
+[33mcommit 8f8591b3729efd7e9d37df7f11b571aa1d384eae[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Dec 5 14:03:39 2025 +0900
+
+    chore: Restructure Folder
+
+[33mcommit 31ff4ec95c8968d9158ff0191d35ec197d3592ad[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Dec 5 14:01:10 2025 +0900
+
+    chore: Rename Images
+
+[33mcommit 78dbd25d8d6a376bc843cb5b59594feb5f2712a3[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Dec 5 13:59:36 2025 +0900
+
+    add: Widget Images
+
+[33mcommit 017d322ff6aaff6e8d8e02961a72a522c453d2ba[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 28 13:49:23 2025 +0900
+
+    chore: 기본 게임 모드 설정 및 RoomBase Test
+
+[33mcommit f174594b02f9d793fc2b5c44a716d4775503138a[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 28 13:48:53 2025 +0900
+
+    chore: 필요 없는 로그 주석 처리
+
+[33mcommit c93b7aeee991a14eb914c494cab465d3d5dd7c5c[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 28 13:48:32 2025 +0900
+
+    refactor: Semaphore 기반의 Player Enter Exit 카운트
+
+[33mcommit 2fde4b8587cb29450a029b522eaf546d63cf5f46[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 28 01:50:29 2025 +0900
+
+    chore: unify terminology
+    
+    Leave, Left -> Exit, Exited
+
+[33mcommit e20ebd801de935c510644140f09ddc415cc7c413[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Thu Nov 27 17:36:11 2025 +0900
+
+    feat: RoomBase Actor Class
+    
+    `RoomBase`는 Game 내에서 생성될 Room을 추상화한 Layer
+
+[33mcommit c0280351a00a7eaa40fdd5afdfafbf1aea04ac30[m
+Merge: 4efcb96 868ce8f
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Wed Nov 26 03:28:50 2025 +0900
+
+    Merge branch 'main' of https://github.com/team-nonamed/DelveInto
+
+[33mcommit 4efcb965cbbd92c9b338607eacb40536545173ec[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Wed Nov 26 03:21:14 2025 +0900
+
+    add: Map Actors
+
+[33mcommit 868ce8fcc566cffaaf31500b3901e34b445058ec[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 21 17:50:35 2025 +0900
+
+    temp: Animated Image Widget Test
+
+[33mcommit f4b2fb4f7af279df8e6d731f1037f4fc32bf963f[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 21 17:50:14 2025 +0900
+
+    add: Hatchet Attack Widget
+
+[33mcommit 8a7afadada8bbf9a461b47cc7b882089b8af4234[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 21 17:49:42 2025 +0900
+
+    add: Animated Image Widget Which Implements Playable Widget
+
+[33mcommit c275f4a625e99cb9ad5b10e9ff10c7ebee99684a[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 21 17:49:01 2025 +0900
+
+    feat: Enhance Enemy Movement (Facing Its Direction)
+
+[33mcommit cff64bbb73024c83aedbd8d100da004c47a680f6[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 21 17:47:55 2025 +0900
+
+    add: PlaceHolder Attack Widget Image
+
+[33mcommit 09188edfa3fd6c49c2096bf82f50abe9b6d78f40[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 21 16:45:19 2025 +0900
+
+    feat: Enemy Facing Logic
+
+[33mcommit f00db04a3973fe81d61bfa89673e4004daa182d5[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Wed Nov 19 02:25:30 2025 +0900
+
+    refactor: Player Trace AI
+
+[33mcommit 16187b2aa5764ec7d222c3aa74d10baed9b22ea2[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Tue Nov 18 14:06:06 2025 +0900
+
+    add: Player Mvoe
+
+[33mcommit 8cd03b7c94411f44d327cad7c3a0baed49cf90e4[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Mon Nov 17 14:40:00 2025 +0900
+
+    add: CombatFeature
+        - Generate CombatComponent.cpp
+        - Generate CombatComponent.h
+
+[33mcommit 2873f1bdb76a1cd764809fb8c957c847037765ab[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Mon Nov 17 14:22:48 2025 +0900
+
+    add: health treat methods
+
+[33mcommit fad21083cc3c3dab030a9b5a7b5da149a3a8a51c[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Sun Nov 16 14:48:56 2025 +0900
+
+    Add: Health Component
+
+[33mcommit a9c847672f14fa1e58e3b628be9b66d78d6ac957[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Fri Nov 14 14:48:49 2025 +0900
+
+    FPS Player
+
+[33mcommit fb41b2e88d68244f6a22383a6e59de55078c58aa[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Thu Nov 13 02:13:46 2025 +0900
+
+    Initial commit: UE project with LFS
+
+[33mcommit 822132e53900aaa0febef5dccd1d903d26b86baf[m
+Author: 9um4 <51898564+9um4@users.noreply.github.com>
+Date:   Thu Nov 13 02:01:55 2025 +0900
+
+    initial commit
