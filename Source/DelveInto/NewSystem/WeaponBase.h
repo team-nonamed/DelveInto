@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "PaperFlipbook.h"
 // Component는 에디터 호환성을 위해 남겨두지만 실제로는 안 씁니다.
+#include "DelveCharacter.h"
 #include "PaperFlipbookComponent.h" 
 #include "WeaponBase.generated.h"
 
@@ -48,6 +49,9 @@ public:
 	
 	UFUNCTION()
 	void ReturnToIdle();
+
+	UPROPERTY()
+	TObjectPtr<ADelveCharacter> MyOwnerCharacter;
 
 protected:
 	// UI에 애니메이션 재생 요청

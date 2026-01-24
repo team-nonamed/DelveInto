@@ -51,6 +51,7 @@ void ADelveCharacter::BeginPlay()
         SpawnParams.Owner = this;
         SpawnParams.Instigator = this;
         CurrentWeapon = GetWorld()->SpawnActor<AWeaponBase>(StartingWeaponClass, WeaponAttachPoint->GetComponentTransform(), SpawnParams);
+        CurrentWeapon->MyOwnerCharacter = this;
         if (CurrentWeapon)
         {
             CurrentWeapon->AttachToComponent(WeaponAttachPoint, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
@@ -77,7 +78,7 @@ void ADelveCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ADelveCharacter::Move);
         EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADelveCharacter::Look);
         EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &ADelveCharacter::OnPrimaryAttack);
-        EnhancedInputComponent->BindAction(ChargeAction, ETriggerEvent::Triggered, this, &ADelveCharacter::OnSecondaryAttack);
+        EnhancedInputComponent->BindAction(ChargeAction, ETriggerEvent::Started, this, &ADelveCharacter::OnSecondaryAttack);
         EnhancedInputComponent->BindAction(ChargeAction, ETriggerEvent::Completed, this, &ADelveCharacter::OnSecondaryAttack);
         EnhancedInputComponent->BindAction(SkillQAction, ETriggerEvent::Started, this, &ADelveCharacter::OnSkillQ);
         EnhancedInputComponent->BindAction(SkillEAction, ETriggerEvent::Started, this, &ADelveCharacter::OnSkillE);

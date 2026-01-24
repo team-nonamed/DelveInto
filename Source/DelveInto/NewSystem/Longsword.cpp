@@ -1,5 +1,8 @@
 ﻿#include "Longsword.h"
 
+#include "DelveCharacter.h"
+#include "DelveProjectile.h"
+#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 
@@ -43,35 +46,98 @@ void ALongsword::ResetCombo()
     // (선택) UI 콤보 초기화 등 처리
 }
 
-void ALongsword::TrySecondaryAttack(bool bIsHolding)
+void ALongsword::TrySecondaryAttack(bool bIsPressed)
 {
-    // 차징 구현 (간소화: 애니메이션은 Map의 Secondary 슬롯 사용)
-    if (bIsHolding)
+    // 1. [누름] 준비 동작 시작
+    if (bIsPressed)
     {
-        if (ChargeStartTime <= 0.0f)
+        if (bIsCharging) return; // 이미 차징 중이면 무시
+
+        bIsCharging = true;
+        ChargeStartTime = GetWorld()->GetTimeSeconds();
+
+        // 1단계: Prepare 애니메이션 재생 (1회성)
+        if (MyOwnerCharacter && AlterPrepareFlipbook)
         {
-            ChargeStartTime = GetWorld()->GetTimeSeconds();
-            // 차징 시작 모션 (Secondary 슬롯에 등록된 경우)
-            PlayAnimationBySlot(EWeaponSkillSlot::Secondary); 
+            MyOwnerCharacter->UpdateWeaponUI(AlterPrepareFlipbook, false); // false = 반복 안 함
+
+            // Prepare 애니메이션 길이만큼 대기 후 -> Charge 루프로 전환
+            float PrepareDuration = AlterPrepareFlipbook->GetTotalDuration();
+            
+            // 타이머 설정: 애니메이션이 끝날 때 StartChargeLoop 함수 실행
+            GetWorld()->GetTimerManager().SetTimer(PrepareTimerHandle, this, &ALongsword::StartChargeLoop, PrepareDuration, false);
+        }
+        else
+        {
+            // 만약 Prepare 애니메이션이 없으면 바로 루프 시작
+            StartChargeLoop();
         }
     }
+    // 2. [뗌] 발사
     else
     {
-        if (ChargeStartTime > 0.0f)
+        if (!bIsCharging) return;
+
+        bIsCharging = false;
+
+        // 혹시 Prepare 도중에 뗐다면, Charge로 넘어가는 타이머 취소
+        GetWorld()->GetTimerManager().ClearTimer(PrepareTimerHandle);
+
+        // 차징 비율 계산
+        float HeldTime = GetWorld()->GetTimeSeconds() - ChargeStartTime;
+        float ChargeRatio = FMath::Clamp(HeldTime / MaxChargeTime, 0.0f, 1.0f);
+
+        // 발사 로직 실행
+        FireSwordWave(ChargeRatio);
+    }
+}
+
+// 타이머에 의해 호출됨: Prepare가 끝났고 아직 누르고 있다면 실행
+void ALongsword::StartChargeLoop()
+{
+    // 버튼을 떼서 bIsCharging이 false가 되었다면 실행 안 함
+    if (bIsCharging && MyOwnerCharacter && AlterChargeFlipbook)
+    {
+        // 2단계: Charge 애니메이션 재생 (계속 반복)
+        MyOwnerCharacter->UpdateWeaponUI(AlterChargeFlipbook, true); // true = 반복 함
+    }
+}
+
+void ALongsword::FireSwordWave(float ChargeRatio)
+{
+    // 3단계: Cast 애니메이션 재생 (1회성)
+    float CastDuration = 0.5f; // 기본값
+    if (MyOwnerCharacter && AlterCastFlipbook)
+    {
+        MyOwnerCharacter->UpdateWeaponUI(AlterCastFlipbook, false); // false = 반복 안 함
+        CastDuration = AlterCastFlipbook->GetTotalDuration();
+    }
+
+    // 투사체 생성 (기존 로직 유지)
+    if (SwordWaveClass && MyOwnerCharacter)
+    {
+        UCameraComponent* Camera = MyOwnerCharacter->FirstPersonCamera;
+        FVector SpawnLoc = Camera->GetComponentLocation() + (Camera->GetForwardVector() * 50.0f);
+        FRotator SpawnRot = Camera->GetComponentRotation();
+
+        FActorSpawnParameters Params;
+        Params.Owner = MyOwnerCharacter;
+        Params.Instigator = MyOwnerCharacter;
+
+        ADelveProjectile* Wave = GetWorld()->SpawnActor<ADelveProjectile>(SwordWaveClass, SpawnLoc, SpawnRot, Params);
+        if (Wave)
         {
-            float HoldTime = GetWorld()->GetTimeSeconds() - ChargeStartTime;
-            float Alpha = FMath::Clamp(HoldTime / MaxChargeTime, 0.0f, 1.0f);
-            float FinalDamage = FMath::Lerp(10.0f, 20.0f, Alpha);
-
-            UE_LOG(LogTemp, Log, TEXT("Charged Attack: %f"), FinalDamage);
-            
-            // 검기 발사 (더 먼 거리 판정)
-            ApplyDamageSphere(FinalDamage, 100.0f, FVector(400.0f, 0.0f, 0.0f)); 
-
-            ChargeStartTime = 0.0f;
-            ReturnToIdle(); // 발사 후 즉시 복귀
+            Wave->InitializeChargeStats(ChargeRatio);
         }
     }
+
+    // 초기화
+    ChargeStartTime = 0.0f;
+
+    // 4단계: Cast 동작이 끝나면 Idle로 돌아오기 위해 타이머 설정
+    // (기존 ReturnToIdle 대신 타이머를 사용해야 애니메이션이 안 끊김)
+    FTimerHandle IdleReturnTimer;
+    GetWorld()->GetTimerManager().SetTimer(IdleReturnTimer, this, &AWeaponBase::ReturnToIdle, CastDuration, false);
 }
 
 void ALongsword::TrySkillQ()
