@@ -1,155 +1,358 @@
 ﻿#include "DelveEnemy.h"
+
+#include "DelveAIController.h"
+#include "DelveEnemy_Jumper.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "PaperSprite.h" // <--- [필수] 이거 꼭 추가해주세요!
+#include "PaperSprite.h"
+#include "Components/BoxComponent.h"
+#include "Components/WidgetComponent.h"
+
+class ADelveEnemy_Jumper;
 
 ADelveEnemy::ADelveEnemy()
 {
     PrimaryActorTick.bCanEverTick = true;
     
-    // [1. 생성자에서 컴포넌트 만들기]
-    // "EnemyFlipbook"이라는 이름으로 컴포넌트 생성
-    EnemyFlipbook = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("EnemyFlipbook"));
-    
-    // 캡슐 컴포넌트(Root)에 자식으로 갖다 붙임
-    EnemyFlipbook->SetupAttachment(GetCapsuleComponent());
+    // -------------------------------------------------------------
+    // 1. 루트 캡슐 (이동 담당)
+    // -------------------------------------------------------------
+    GetCapsuleComponent()->InitCapsuleSize(40.f, 96.0f);
 
-    // (선택 사항) 스프라이트 위치나 회전 기본값 잡기
-    // 보통 2D 게임은 캐릭터가 정면을 보게 90도 돌리거나 함
+    // 이동용 캡슐은 공격 무시
+    GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+    GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+
+    // 플립북 설정
+    EnemyFlipbook = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("EnemyFlipbook"));
+    EnemyFlipbook->SetupAttachment(GetCapsuleComponent());
     EnemyFlipbook->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+    
+    // -------------------------------------------------------------
+    // 2. 몸통 콜리전 (피격 담당, 박스 형태)
+    // -------------------------------------------------------------
+    BodyCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BodyCollision"));
+    
+    // [수정된 부분] 2D 캐릭터는 3D Mesh(뼈)가 없으므로 캡슐(Root)에 직접 붙입니다.
+    BodyCollision->SetupAttachment(GetCapsuleComponent()); 
+
+    // 박스 크기 초기값
+    BodyCollision->InitBoxExtent(FVector(40.0f, 20.0f, 15.0f));
+
+    // =============================================================
+    // [핵심] 내비게이션 방해 금지 설정
+    // =============================================================
+    
+    // 1. 길찾기(NavMesh)에 구멍 뚫지 않기 (필수!)
+    BodyCollision->SetCanEverAffectNavigation(false);
+
+    // 2. 충돌 검사(Query)만 켜기
+    BodyCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+    // 3. 일단 모두 무시
+    BodyCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
+
+    // 4. 공격만 막음 (Camera = 투사체/공격 판정)
+    BodyCollision->SetCollisionResponseToChannel(ECC_Camera, ECR_Block);
+    BodyCollision->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+
+    HealthBarWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarWidget"));
+    HealthBarWidget->SetupAttachment(GetCapsuleComponent());
+    
+    // 머리 위로 위치 조정 (약간 위로 띄움)
+    HealthBarWidget->SetRelativeLocation(FVector(0.0f, 0.0f, 130.0f)); 
+    
+    // [중요] 'Screen' 모드로 설정하면 카메라를 항상 바라보며 크기가 일정하게 유지됨
+    // 'World' 모드로 하면 거리가 멀어지면 작아짐 (취향껏 선택)
+    HealthBarWidget->SetWidgetSpace(EWidgetSpace::Screen);
+    
+    // 위젯 크기 설정
+    HealthBarWidget->SetDrawSize(FVector2D(100.0f, 15.0f));
 }
 
 void ADelveEnemy::BeginPlay()
 {
     Super::BeginPlay();
-
     CurrentHealth = MaxHealth;
-    
-    if (EnemyFlipbook && IdleFlipbook)
-    {
-        EnemyFlipbook->SetFlipbook(IdleFlipbook);
-    }
+    if (EnemyFlipbook && IdleFlipbook) EnemyFlipbook->SetFlipbook(IdleFlipbook);
 
-    // 2. 거리 측정 타이머 (1초마다 실행)
-    GetWorld()->GetTimerManager().SetTimer(DistanceDebugTimer, this, &ADelveEnemy::PrintDistanceToPlayer, 1.0f, true);
+    // [추가] 시작하자마자 체력바 100%로 초기화
+    // 위젯 컴포넌트가 초기화될 시간을 주기 위해 약간의 딜레이가 필요할 수도 있지만,
+    // 보통 BeginPlay 시점에는 생성되어 있음.
+    if (HealthBarWidget)
+    {
+        // 위젯 컴포넌트에서 실제 위젯 객체 가져오기 (Cast 필요)
+        UDelveHealthBarWidget* Bar = Cast<UDelveHealthBarWidget>(HealthBarWidget->GetUserWidgetObject());
+        if (Bar)
+        {
+            Bar->UpdateHealthRatio(1.0f); // 100%
+        }
+    }
+    
+    // 디버그용 (필요 없으면 삭제)
+    // GetWorld()->GetTimerManager().SetTimer(DistanceDebugTimer, this, &ADelveEnemy::PrintDistanceToPlayer, 1.0f, true);
 }
 
 void ADelveEnemy::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
 
-    if (!EnemyFlipbook || !GetCapsuleComponent()) return;
+    // 1. 필수 컴포넌트(캡슐)가 없으면 중단
+    if (!GetCapsuleComponent()) return;
 
-    // 1. 캡슐 정보 가져오기
-    float HalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-    float CapsuleTotalHeight = HalfHeight * 2.0f;
+    // 2. 현재 캡슐의 크기 정보 가져오기
+    float CapRadius = GetCapsuleComponent()->GetScaledCapsuleRadius();      // 반지름
+    float CapHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight(); // 절반 높이
 
-    // 2. 위치 자동 조절 (발바닥 맞추기)
-    EnemyFlipbook->SetRelativeLocation(FVector(0.0f, 0.0f, -HalfHeight));
-    EnemyFlipbook->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
-
-    // 3. 스케일 자동 조절 (에디터 전용 로직으로 변경)
-#if WITH_EDITOR 
-    if (bAutoResizeToCapsule && EnemyFlipbook->GetFlipbook())
+    // -------------------------------------------------------------------------
+    // [추가] BodyCollision(박스) 크기 자동 동기화
+    // 목표: 두께(X) = 10, 가로(Y) = 캡슐 지름, 높이(Z) = 캡슐 전체 높이
+    // -------------------------------------------------------------------------
+    if (BodyCollision)
     {
-        UPaperFlipbook* CurrentFlipbook = EnemyFlipbook->GetFlipbook();
+        // SetBoxExtent는 "중심에서 끝까지의 거리(반지름 개념)"를 입력해야 합니다.
+        // 따라서 원하는 실제 크기(Size)를 2로 나눠서 입력합니다.
         
-        if (CurrentFlipbook->GetNumKeyFrames() > 0)
+        float ExtentX = 10.0f / 2.0f;  // 두께 10 -> 5.0f
+        float ExtentY = CapRadius;     // 가로 지름(R*2)의 절반 -> R
+        float ExtentZ = CapHalfHeight; // 전체 높이(H*2)의 절반 -> H
+
+        // 크기 적용
+        BodyCollision->SetBoxExtent(FVector(ExtentX, ExtentY, ExtentZ));
+
+        // 위치와 회전 초기화 (캡슐과 정확히 겹치도록 정중앙 배치)
+        BodyCollision->SetRelativeLocation(FVector::ZeroVector);
+        BodyCollision->SetRelativeRotation(FRotator::ZeroRotator);
+    }
+
+    // -------------------------------------------------------------------------
+    // [기존] 플립북 위치 및 스케일 자동 조절 로직
+    // -------------------------------------------------------------------------
+    if (EnemyFlipbook)
+    {
+        // 발바닥 위치로 플립북 이동
+        EnemyFlipbook->SetRelativeLocation(FVector(0.0f, 0.0f, -CapHalfHeight));
+        // 스프라이트가 정면을 보게 회전
+        EnemyFlipbook->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+
+#if WITH_EDITOR 
+        // 에디터에서만 동작하는 스케일 자동 조절
+        if (bAutoResizeToCapsule && EnemyFlipbook->GetFlipbook())
         {
-            UPaperSprite* FirstSprite = CurrentFlipbook->GetSpriteAtFrame(0);
-
-            if (FirstSprite)
+            UPaperFlipbook* CurrentFlipbook = EnemyFlipbook->GetFlipbook();
+            if (CurrentFlipbook->GetNumKeyFrames() > 0)
             {
-                // GetSourceSize()는 에디터 전용 데이터이므로 WITH_EDITOR 안에서만 안전함
-                float SourcePixelHeight = FirstSprite->GetSourceSize().Y;
-                float PPU = FirstSprite->GetPixelsPerUnrealUnit();
-                
-                if (PPU <= 0.0f) PPU = 1.0f; 
-
-                float SpriteWorldHeight = SourcePixelHeight / PPU;
-
-                if (SpriteWorldHeight > 0.0f)
+                UPaperSprite* FirstSprite = CurrentFlipbook->GetSpriteAtFrame(0);
+                if (FirstSprite)
                 {
-                    float NewScale = CapsuleTotalHeight / SpriteWorldHeight;
-                    EnemyFlipbook->SetRelativeScale3D(FVector(NewScale, NewScale, NewScale));
+                    // 스프라이트의 실제 월드 크기 계산
+                    float SourcePixelHeight = FirstSprite->GetSourceSize().Y;
+                    float PPU = FirstSprite->GetPixelsPerUnrealUnit();
+                    if (PPU <= 0.0f) PPU = 1.0f; 
+                    
+                    float SpriteWorldHeight = SourcePixelHeight / PPU;
+                    float CapsuleTotalHeight = CapHalfHeight * 2.0f; // 전체 높이
+
+                    // 캡슐 높이에 딱 맞게 스케일 조절
+                    if (SpriteWorldHeight > 0.0f)
+                    {
+                        float NewScale = CapsuleTotalHeight / SpriteWorldHeight;
+                        EnemyFlipbook->SetRelativeScale3D(FVector(NewScale, NewScale, NewScale));
+                    }
                 }
             }
         }
-    }
 #endif
+    }
 }
 
 void ADelveEnemy::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-
     // 매 프레임 애니메이션 갱신
     UpdateAnimation();
+
+    // [추가] 항상 플레이어를 바라보게 회전
+    if (bAlwaysFacePlayer && !bIsDead)
+    {
+        FaceToPlayer(DeltaTime);
+    }
+}
+
+void ADelveEnemy::FaceToPlayer(float DeltaTime)
+{
+    AActor* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (!Player) return;
+
+    // 1. 플레이어 방향 벡터 계산
+    FVector Direction = Player->GetActorLocation() - GetActorLocation();
+    Direction.Z = 0.0f; // 높이 차이는 무시 (평면 회전)
+
+    // 방향이 너무 짧으면(거의 겹쳐있으면) 회전 안 함
+    if (Direction.IsNearlyZero()) return;
+
+    // 2. 목표 회전값(Rotator) 계산
+    FRotator TargetRotation = Direction.Rotation();
+
+    // 3. 현재 회전값에서 목표 회전값으로 부드럽게 보간 (RInterpTo)
+    FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, RotationSpeed);
+
+    // 4. 적용
+    SetActorRotation(NewRotation);
 }
 
 void ADelveEnemy::UpdateAnimation()
 {
-    // 1. 우선순위 체크: 죽었거나 공격 중이면 걷기/대기 모션으로 바꾸지 않음
     if (bIsDead || bIsAttacking) return;
 
-    // 2. 현재 속도(Velocity) 가져오기
     FVector Velocity = GetVelocity();
-    float Speed = Velocity.Size(); // 속도의 크기 (0이면 정지, 0보다 크면 이동)
+    float Speed = Velocity.Size();
 
-    // 3. 결정할 플립북 선택
-    UPaperFlipbook* DesiredFlipbook = IdleFlipbook; // 기본은 Idle
+    UPaperFlipbook* DesiredFlipbook = IdleFlipbook;
+    if (Speed > 0.1f && ForwardFlipbook) DesiredFlipbook = ForwardFlipbook;
 
-    if (Speed > 0.1f) // 아주 미세한 움직임은 무시하려고 0.1보다 클 때로 설정
-    {
-        if (ForwardFlipbook) DesiredFlipbook = ForwardFlipbook;
-    }
-
-    // 4. [중요] 플립북 교체 (이미 재생 중인 것과 다를 때만 SetFlipbook 호출)
-    // 매 프레임 SetFlipbook을 하면 애니메이션이 1프레임에서 계속 리셋되어 렉 걸린 것처럼 보임
     if (EnemyFlipbook && EnemyFlipbook->GetFlipbook() != DesiredFlipbook)
     {
         EnemyFlipbook->SetFlipbook(DesiredFlipbook);
-        EnemyFlipbook->SetLooping(true); // 걷기와 대기는 반복 재생
+        EnemyFlipbook->SetLooping(true);
         EnemyFlipbook->Play();
     }
 }
 
-// --- 공격 시스템 ---
+// ==========================================
+// [핵심] 공격 시스템 구현
+// ==========================================
 
-void ADelveEnemy::Attack()
+void ADelveEnemy::StartAttackSequence(AActor* Target)
 {
-    if (bIsDead || bIsAttacking || !bCanAttack) return;
+    UE_LOG(LogTemp, Display, TEXT("Try to Attack"))
+    
+    if (bIsDead || bIsAttacking || !bCanAttack || !Target) return;
 
+    // 1. 상태 설정
     bIsAttacking = true;
     bCanAttack = false;
+    CachedTarget = Target;
 
-    // 1. 애니메이션 재생
-    float AnimDuration = 0.5f;
-    if (AttackFlipbook && EnemyFlipbook)
+    // 2. 차징(준비) 애니메이션 재생
+    float PrepDuration = 0.5f; // 기본값
+
+    if (EnemyFlipbook && AttackPrepFlipbook)
+    {
+        EnemyFlipbook->SetFlipbook(AttackPrepFlipbook);
+        EnemyFlipbook->SetLooping(false); 
+        EnemyFlipbook->PlayFromStart();
+        PrepDuration = AttackPrepFlipbook->GetTotalDuration();
+    }
+    else
+    {
+        PrepDuration = 0.2f; // 애니메이션 없으면 짧은 딜레이
+    }
+
+    // UE_LOG(LogTemp, Warning, TEXT("Enemy: Start Charging... (%.2f sec)"), PrepDuration);
+
+    // 3. 준비 시간 후 실행(Execute) 예약
+    GetWorld()->GetTimerManager().SetTimer(AttackPrepTimer, this, &ADelveEnemy::ExecuteAttack, PrepDuration, false);
+}
+
+void ADelveEnemy::ExecuteAttack()
+{
+    // [기본 동작: 근접 공격]
+    // Jumper 클래스는 이 함수를 오버라이드해서 점프함.
+
+    if (bIsDead) return;
+
+    // UE_LOG(LogTemp, Warning, TEXT("Enemy: Melee Slash!"));
+
+    // 1. 공격 애니메이션
+    float ActionDuration = 0.5f;
+    if (EnemyFlipbook && AttackFlipbook)
     {
         EnemyFlipbook->SetFlipbook(AttackFlipbook);
         EnemyFlipbook->SetLooping(false);
         EnemyFlipbook->PlayFromStart();
-        AnimDuration = AttackFlipbook->GetTotalDuration();
+        ActionDuration = AttackFlipbook->GetTotalDuration();
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Enemy Attacks!"));
+    // 2. 근접 데미지 판정
+    PerformMeleeDamageCheck();
 
-    // 2. 데미지 판정 (약간의 딜레이 후 실행하려면 Timer 사용, 여기선 즉시 실행)
-    PerformAttackCheck();
-
-    // 3. 타이머 설정
-    // 애니메이션 복귀
-    GetWorld()->GetTimerManager().SetTimer(AnimResetTimer, this, &ADelveEnemy::ReturnToIdle, AnimDuration, false);
-    // 쿨타임 리셋
-    GetWorld()->GetTimerManager().SetTimer(AttackTimerHandle, this, &ADelveEnemy::ResetCooldown, AttackCooldown, false);
+    // 3. 후딜레이 후 종료 예약
+    GetWorld()->GetTimerManager().SetTimer(AttackActionTimer, this, &ADelveEnemy::FinishAttack, ActionDuration, false);
 }
 
-void ADelveEnemy::PerformAttackCheck()
+void ADelveEnemy::FinishAttack()
 {
-    // 심플한 구체 판정 (전방 100 거리)
+    if (bIsDead) return;
+
+    // 1. 플레이어 확인
+    AActor* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    
+    if (Player)
+    {
+        // -------------------------------------------------------
+        // [수정] 캡슐 크기를 고려한 '표면 거리' 계산
+        // -------------------------------------------------------
+        float MyRadius = (GetCapsuleComponent()) ? GetCapsuleComponent()->GetScaledCapsuleRadius() : 0.0f;
+        float TargetRadius = 0.0f;
+
+        // 플레이어의 캡슐 반지름 가져오기
+        if (ACharacter* PlayerChar = Cast<ACharacter>(Player))
+        {
+            if (PlayerChar->GetCapsuleComponent())
+            {
+                TargetRadius = PlayerChar->GetCapsuleComponent()->GetScaledCapsuleRadius();
+            }
+        }
+
+        float CenterDist = GetDistanceTo(Player);
+        
+        // 표면 거리 = 중심 거리 - (내 반지름 + 상대 반지름)
+        // 0.0f보다 작아지지 않게 Max 처리
+        float SurfaceDist = FMath::Max(0.0f, CenterDist - (MyRadius + TargetRadius));
+
+
+        // -------------------------------------------------------
+        // 2. 연속 공격 사거리 결정
+        // -------------------------------------------------------
+        // 기본은 AttackRange. (AI 컨트롤러와 로직 통일)
+        // 약간의 오차 허용(+5.0f 정도)을 주면 더 부드럽게 연계됩니다.
+        float ChainAttackRange = AttackRange + 5.0f; 
+
+        // Jumper라면 점프 사거리 사용
+        if (ADelveEnemy_Jumper* Jumper = Cast<ADelveEnemy_Jumper>(this))
+        {
+            ChainAttackRange = Jumper->JumpAttackRange;
+        }
+
+        UE_LOG(LogTemp, Warning, TEXT("Chain Check -> Range: %f / SurfaceDist: %f"), ChainAttackRange, SurfaceDist);
+        
+        // -------------------------------------------------------
+        // 3. '표면 거리'가 사거리 안이라면? -> 쉬지 않고 바로 공격!
+        // -------------------------------------------------------
+        if (SurfaceDist <= ChainAttackRange +5.0)
+        {
+            // [중요] 바로 공격하려면 상태를 강제로 리셋해줘야 함
+            bIsAttacking = false; 
+            bCanAttack = true; 
+
+            // 공격 시퀀스 재시작 (차징부터 다시 시작됨)
+            StartAttackSequence(Player);
+            return; // 여기서 함수 종료 (Idle로 가지 않음)
+        }
+    }
+
+    // 4. 적이 없거나 멀어졌다면? -> 원래대로 휴식(Idle) 및 쿨타임
+    ReturnToIdle();
+
+    ResetCooldown();
+}
+
+void ADelveEnemy::PerformMeleeDamageCheck()
+{
     FVector Start = GetActorLocation() + GetActorForwardVector() * 50.0f;
     float Radius = 60.0f;
     float Damage = 10.0f;
@@ -162,8 +365,16 @@ void ADelveEnemy::PerformAttackCheck()
 
     for (AActor* HitActor : OverlappedActors)
     {
+        // 1. 나 자신은 때리지 않음 (기존 코드)
         if (HitActor && HitActor != this)
         {
+            // 2. [추가] 맞은 놈이 적(Enemy)이면 건너뜀!
+            if (HitActor->IsA(ADelveEnemy::StaticClass())) 
+            {
+                continue; 
+            }
+
+            // 플레이어라면 데미지!
             FDamageEvent DamageEvent;
             HitActor->TakeDamage(Damage, DamageEvent, GetController(), this);
         }
@@ -178,59 +389,95 @@ void ADelveEnemy::ReturnToIdle()
         EnemyFlipbook->SetLooping(true);
         EnemyFlipbook->Play();
     }
-    bIsAttacking = false; // 이동 가능 상태로 복귀
 }
 
 void ADelveEnemy::ResetCooldown()
 {
     bCanAttack = true;
+    bIsAttacking = false; // 다시 행동 가능
+    // UE_LOG(LogTemp, Warning, TEXT("Enemy: Attack Ready"));
 }
 
-// --- 피격 및 사망 시스템 ---
+// --- 피격 및 기타 ---
 
 float ADelveEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+    // 1. 이미 죽었으면 로직 중단
     if (bIsDead) return 0.0f;
 
+    // 2. 아군 오인 사격 방지
+    if (DamageCauser && DamageCauser->IsA(ADelveEnemy::StaticClass()))
+    {
+        return 0.0f;
+    }
+
+    // 3. 데미지 적용
     float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
     CurrentHealth = FMath::Clamp(CurrentHealth - ActualDamage, 0.0f, MaxHealth);
 
-    // 빨간색 점멸 효과 (죽지 않았을 때만 하거나, 죽어도 잠깐 번쩍이게 유지)
+    // =============================================================
+    // [추가] 피격 효과: 1초간 빨간색으로 변경
+    // =============================================================
     if (EnemyFlipbook)
     {
-        EnemyFlipbook->SetSpriteColor(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
+        EnemyFlipbook->SetSpriteColor(FLinearColor::Red); // 빨간색 설정
+        
+        // 기존 타이머가 돌고 있다면 초기화하고 다시 1초 세팅
         GetWorld()->GetTimerManager().ClearTimer(HitFlashTimer);
-        GetWorld()->GetTimerManager().SetTimer(HitFlashTimer, this, &ADelveEnemy::ResetSpriteColor, 0.2f, false);
+        GetWorld()->GetTimerManager().SetTimer(HitFlashTimer, this, &ADelveEnemy::ResetSpriteColor, 0.5f, false);
     }
 
-    // 사망 처리
+    // 4. 위젯 업데이트
+    if (HealthBarWidget)
+    {
+        UDelveHealthBarWidget* Bar = Cast<UDelveHealthBarWidget>(HealthBarWidget->GetUserWidgetObject());
+        if (Bar)
+        {
+            float Ratio = (MaxHealth > 0.0f) ? (CurrentHealth / MaxHealth) : 0.0f;
+            Bar->UpdateHealthRatio(Ratio);
+        }
+    }
+
+    // =============================================================
+    // 5. 사망 체크 및 처리
+    // =============================================================
     if (CurrentHealth <= 0.0f)
     {
-        bIsDead = true; // [중요] 이 플래그가 true면 UpdateAnimation 등에서 다른 모션으로 안 바뀌게 막아야 함
-        
-        // 2. AI 이동 중지
-        if (GetController()) GetController()->StopMovement();
-        
-        // 3. 색상 즉시 복구 (선택 사항: 피격 빨간색을 끄고 싶다면)
-        ResetSpriteColor(); 
-        
-        // 4. [핵심] 사망 애니메이션 재생
-        float DeathDelay = 1.0f; // 애니메이션 없을 때를 대비한 기본값
+        bIsDead = true;
+
+        // A. 사망 시에는 피격 빨간색을 즉시 해제하고 원래 색으로 복구 (선택 사항)
+        // 죽는 모션이 빨간색인 게 싫으면 아래 주석 해제하세요.
+        // ResetSpriteColor(); 
+        // GetWorld()->GetTimerManager().ClearTimer(HitFlashTimer);
+
+        // B. 콜리전 끄기
+        GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        if (BodyCollision) BodyCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+        // C. AI 멈추기
+        if (ADelveAIController* AICon = Cast<ADelveAIController>(GetController()))
+        {
+            AICon->StopMovement();
+        }
+
+        // D. 위젯 숨기기
+        if (HealthBarWidget) HealthBarWidget->SetVisibility(false);
+
+        // E. [핵심] 사망 애니메이션 재생 및 삭제 예약
+        float DeathDuration = 1.0f; // 애니메이션 없으면 1초 뒤 삭제
 
         if (EnemyFlipbook && DeathFlipbook)
         {
             EnemyFlipbook->SetFlipbook(DeathFlipbook);
-            EnemyFlipbook->SetLooping(false); // 죽는 모션은 한 번만 재생하고 멈춰야 함 (반복 X)
+            EnemyFlipbook->SetLooping(false); // 한 번만 재생
             EnemyFlipbook->PlayFromStart();
-
-            // 애니메이션 총 길이 가져오기
-            DeathDelay = DeathFlipbook->GetTotalDuration();
+            
+            // 애니메이션 길이 가져오기
+            DeathDuration = DeathFlipbook->GetTotalDuration();
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("Enemy Died! Destroying in %f seconds."), DeathDelay);
-
-        // 5. 애니메이션 길이 + 약간의 여유(0.2초)를 두고 삭제
-        SetLifeSpan(DeathDelay + 0.2f); 
+        // 애니메이션이 끝날 때쯤 액터 삭제 (Destroy)
+        GetWorld()->GetTimerManager().SetTimer(DeathTimer, this, &ADelveEnemy::DestroySelf, DeathDuration, false);
     }
 
     return ActualDamage;
@@ -248,7 +495,12 @@ void ADelveEnemy::PrintDistanceToPlayer()
     if (Player)
     {
         float Dist = FVector::Dist(GetActorLocation(), Player->GetActorLocation());
-        // 화면 좌측 상단에 표시 (Key: 100번)
         GEngine->AddOnScreenDebugMessage(100, 1.0f, FColor::Yellow, FString::Printf(TEXT("Enemy Dist: %.1f"), Dist));
     }
+}
+
+void ADelveEnemy::DestroySelf()
+{
+    // 게임 월드에서 완전히 제거
+    Destroy();
 }

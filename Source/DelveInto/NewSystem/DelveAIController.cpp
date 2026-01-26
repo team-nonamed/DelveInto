@@ -2,76 +2,69 @@
 #include "Kismet/GameplayStatics.h"
 #include "DelveEnemy.h"
 #include "DelveEnemy_Jumper.h"
+#include "Components/CapsuleComponent.h"
 
 void ADelveAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-	PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 }
 
 void ADelveAIController::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
 
-	// 제어 중인 폰을 기본 Enemy로 캐스팅
-	ADelveEnemy* BaseEnemy = Cast<ADelveEnemy>(GetPawn());
-	if (!BaseEnemy || BaseEnemy->bIsDead) 
-	{
-		StopMovement();
-		return;
-	}
+    PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    ADelveEnemy* ControlledEnemy = Cast<ADelveEnemy>(GetPawn());
 
-	// 플레이어 다시 찾기 (만약 없다면)
-	if (!PlayerPawn) PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-	if (!PlayerPawn) return;
+    if (PlayerPawn && ControlledEnemy && !ControlledEnemy->bIsDead)
+    {
+        // [핵심 해결책] 
+        // 이미 공격 행동을 하고 있다면(차징 중이거나, 휘두르는 중이면)
+        // 이동 명령을 내리지 말고 그대로 함수를 종료합니다.
+        // -> 이렇게 해야 공격 모션 중에 바닥을 미끄러지며 따라가는 현상이 사라집니다.
+        if (ControlledEnemy->bIsAttacking)
+        {
+            // (선택 사항) 공격 중에도 적을 바라보게 하려면 아래 줄 추가
+            // SetFocus(PlayerPawn); 
+            return; 
+        }
 
-	// 거리 계산
-	float Distance = FVector::Dist(BaseEnemy->GetActorLocation(), PlayerPawn->GetActorLocation());
+        // -------------------------------------------------------
+        // 이 아래는 "공격 중이 아닐 때"만 실행됩니다.
+        // -------------------------------------------------------
 
-	// 공격 중이면 이동 금지 (공통)
-	if (BaseEnemy->bIsAttacking)
-	{
-		StopMovement();
-		return;
-	}
+        // 1. 캡슐 반지름 가져오기
+        float MyRadius = (ControlledEnemy->GetCapsuleComponent()) ? ControlledEnemy->GetCapsuleComponent()->GetScaledCapsuleRadius() : 0.0f;
+        float TargetRadius = 0.0f;
+        if (ACharacter* PlayerChar = Cast<ACharacter>(PlayerPawn))
+        {
+            if (PlayerChar->GetCapsuleComponent()) TargetRadius = PlayerChar->GetCapsuleComponent()->GetScaledCapsuleRadius();
+        }
 
-	// --- 행동 결정 ---
+        // 2. 거리 계산
+        float CenterDist = FVector::Dist(ControlledEnemy->GetActorLocation(), PlayerPawn->GetActorLocation());
+        float SurfaceDist = FMath::Max(0.0f, CenterDist - (MyRadius + TargetRadius));
 
-	// 1. 기본 공격 (초근접)
-	if (Distance <= BaseEnemy->AttackRange)
-	{
-		StopMovement();
-		// 플레이어 보기
-		FVector Dir = PlayerPawn->GetActorLocation() - BaseEnemy->GetActorLocation();
-		Dir.Z = 0;
-		BaseEnemy->SetActorRotation(Dir.Rotation());
-        
-		BaseEnemy->Attack();
-	}
-	else
-	{
-		// 2. 점프 공격 시도 (Jumper인지 확인)
-		ADelveEnemy_Jumper* Jumper = Cast<ADelveEnemy_Jumper>(BaseEnemy);
-        
-		// Jumper가 맞고, 거리가 적당하고, 너무 가깝지 않다면(150 이상)
-		if (Jumper && Distance <= Jumper->JumpAttackRange && Distance > 150.0f)
-		{
-			StopMovement();
-			// 플레이어 보기
-			FVector Dir = PlayerPawn->GetActorLocation() - BaseEnemy->GetActorLocation();
-			Dir.Z = 0;
-			BaseEnemy->SetActorRotation(Dir.Rotation());
-            
-			Jumper->JumpAttack(PlayerPawn);
-		}
-		// 3. 추적 (너무 멀면)
-		else if (Distance < 1500.0f)
-		{
-			MoveToActor(PlayerPawn, 50.0f);
-		}
-		else
-		{
-			StopMovement();
-		}
-	}
+        // 3. 사거리 결정
+        float EngagementRange = ControlledEnemy->AttackRange; 
+        if (ADelveEnemy_Jumper* Jumper = Cast<ADelveEnemy_Jumper>(ControlledEnemy))
+        {
+            EngagementRange = Jumper->JumpAttackRange;
+        }
+
+        // 4. 이동 및 공격 판정
+        // 약간의 오차 허용(+5.0f)
+        if (SurfaceDist <= EngagementRange + 5.0f)
+        {
+            StopMovement(); 
+            ControlledEnemy->StartAttackSequence(PlayerPawn);
+        }
+        else
+        {
+            // 공격 중이 아닐 때만 이 코드가 실행되므로, 
+            // 이제 멀어졌을 때 정상적으로 '걷기 애니메이션'이 나옵니다.
+            float MoveTargetRange = EngagementRange * 0.5f; 
+            MoveToActor(PlayerPawn, MoveTargetRange); 
+        }
+    }
 }

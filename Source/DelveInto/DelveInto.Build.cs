@@ -20,7 +20,8 @@ public class DelveInto : ModuleRules
 			"UMG",
 			"GameplayTags",
 			"NavigationSystem",
-			"Paper2D"
+			"Paper2D",
+			"Niagara",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate",

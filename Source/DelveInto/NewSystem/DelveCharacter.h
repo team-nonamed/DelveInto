@@ -22,8 +22,24 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-public:	
+public:
+
+    virtual void Tick(float DeltaTime) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+    // HP 관련
+    // [필수] 언리얼 엔진 기본 데미지 처리 함수 오버라이드
+    virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+    // --- 체력 스탯 ---
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+    float MaxHealth = 100.0f;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+    float CurrentHealth;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+    bool bIsDead = false;
 
     // --- 컴포넌트 ---
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -84,4 +100,6 @@ private:
     void FinalizeSecondaryAttack(); // 차징 완료 후 실제 발사 로직
     void OnSkillQ();
     void OnSkillE();
+
+    void OnDeath();
 };

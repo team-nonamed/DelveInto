@@ -9,6 +9,8 @@
 
 ADelveCharacter::ADelveCharacter()
 {
+    PrimaryActorTick.bCanEverTick = true;
+    
     GetCapsuleComponent()->InitCapsuleSize(40.f, 96.0f);
 
     FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
@@ -25,6 +27,9 @@ ADelveCharacter::ADelveCharacter()
 void ADelveCharacter::BeginPlay()
 {
     Super::BeginPlay();
+
+    CurrentHealth = MaxHealth;
+    
 
     if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
     {
@@ -93,6 +98,67 @@ void ADelveCharacter::Move(const FInputActionValue& Value)
         AddMovementInput(GetActorForwardVector(), MovementVector.Y);
         AddMovementInput(GetActorRightVector(), MovementVector.X);
     }
+}
+
+void ADelveCharacter::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    // 2. [디버그] 매 프레임 체력 상태 표시
+    // Key값(첫 번째 인자)을 0이 아닌 고정된 숫자(예: 123)로 주면 메시지가 스크롤되지 않고 제자리에서 갱신됨
+    if (!bIsDead)
+    {
+        FString HealthMsg = FString::Printf(TEXT("[Player HP] : %.1f / %.1f"), CurrentHealth, MaxHealth);
+        GEngine->AddOnScreenDebugMessage(123, 0.0f, FColor::Green, HealthMsg);
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(123, 0.0f, FColor::Red, TEXT("[Player Dead]"));
+    }
+}
+
+float ADelveCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+    // 이미 죽었으면 데미지 무시
+    if (bIsDead) return 0.0f;
+
+    // 부모 클래스 로직 실행
+    float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+    // 체력 감소
+    CurrentHealth = FMath::Clamp(CurrentHealth - ActualDamage, 0.0f, MaxHealth);
+
+    // 로그 출력 (맞을 때마다)
+    UE_LOG(LogTemp, Warning, TEXT("Player Hit! Damage: %f, Current HP: %f"), ActualDamage, CurrentHealth);
+
+    // 사망 체크
+    if (CurrentHealth <= 0.0f)
+    {
+        OnDeath();
+    }
+
+    return ActualDamage;
+}
+
+void ADelveCharacter::OnDeath()
+{
+    bIsDead = true;
+
+    // [사망 처리 로직]
+    UE_LOG(LogTemp, Error, TEXT("Player Died!"));
+
+    // 1. 입력 차단
+    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        DisableInput(PC);
+    }
+
+    // 2. (선택) 래그돌(Ragdoll) 전환
+    /*
+    GetMesh()->SetSimulatePhysics(true);
+    GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    */
 }
 
 void ADelveCharacter::Look(const FInputActionValue& Value)
