@@ -5,17 +5,21 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
+#include "Kismet/GameplayStatics.h"
 
 void ALongsword::TryPrimaryAttack()
 {
     if (bIsAttacking) return;
-
+    
     // 1. 콤보 애니메이션 선택 및 재생
     UPaperFlipbook* CurrentAnim = nullptr;
     if (PrimaryComboAnims.IsValidIndex(CurrentComboIndex))
     {
         CurrentAnim = PrimaryComboAnims[CurrentComboIndex];
     }
+
+    // 다른 적을 맞히지 않은 경우 BaseAttackSound를 재생하고 만약 맞힌 경우 BaseAttackSoundWhenHit을 재생
+    
     
     // 애니메이션 재생 (없으면 0.0f 반환)
     float AnimDuration = PlayAnimationDirectly(CurrentAnim);
@@ -29,8 +33,15 @@ void ALongsword::TryPrimaryAttack()
     // Radius: 200 (사거리)
     // HalfAngle: 60 (좌우 120도)
     // HalfHeight: AttackHeight (플레이어 키만큼 위아래 커버)
-    ApplyDamageSphericalCone(Damage, 400.0f, 15.0f);
-
+    if (ApplyDamageSphericalCone(Damage, 400.0f, 15.0f))
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, BaseAttackSoundWhenHit, GetActorLocation());
+    }
+    else
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, BaseAttackSound, GetActorLocation());
+    }
+    
     // 4. 콤보 인덱스 증가 및 초기화 타이머
     CurrentComboIndex = (CurrentComboIndex + 1) % PrimaryComboAnims.Num(); // 배열 길이만큼 순환
     GetWorld()->GetTimerManager().SetTimer(ComboResetTimer, this, &ALongsword::ResetCombo, 1.5f, false);
@@ -78,6 +89,8 @@ void ALongsword::TrySecondaryAttack(bool bIsPressed)
     {
         if (!bIsCharging) return;
 
+        UGameplayStatics::PlaySoundAtLocation(this, AlterAttackSound, GetActorLocation());
+        
         bIsCharging = false;
 
         // 혹시 Prepare 도중에 뗐다면, Charge로 넘어가는 타이머 취소
@@ -117,7 +130,7 @@ void ALongsword::FireSwordWave(float ChargeRatio)
     if (SwordWaveClass && MyOwnerCharacter)
     {
         UCameraComponent* Camera = MyOwnerCharacter->FirstPersonCamera;
-        FVector SpawnLoc = Camera->GetComponentLocation() + (Camera->GetForwardVector() * 50.0f);
+        FVector SpawnLoc = Camera->GetComponentLocation() + (Camera->GetForwardVector() * 100.0f);
         FRotator SpawnRot = Camera->GetComponentRotation();
 
         FActorSpawnParameters Params;

@@ -26,6 +26,7 @@ void ADelveEnemy_Jumper::ExecuteAttack()
     Direction.Normalize();
 
     // 2. 캐릭터 날리기 (점프)
+    UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
     FVector LaunchVel = (Direction * 600.0f) + FVector(0.0f, 0.0f, 500.0f);
     LaunchCharacter(LaunchVel, true, true);
 
@@ -57,7 +58,7 @@ void ADelveEnemy_Jumper::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, U
 
         // 데미지
         FDamageEvent DamageEvent;
-        Other->TakeDamage(10.0f, DamageEvent, GetController(), this);
+        Other->TakeDamage(3.0f, DamageEvent, GetController(), this);
 
         // 타격 모션 (부모의 AttackFlipbook 활용)
         if (EnemyFlipbook && AttackFlipbook)
@@ -127,7 +128,7 @@ void ADelveEnemy_Jumper::ApplyLandingDamage()
 {
     FVector Origin = GetActorLocation();
     float Radius = 150.0f;
-    float Damage = 20.0f;
+    float Damage = 5.0f;
     
     // 디버그 원 그리기 (빨간색)
     // DrawDebugSphere(GetWorld(), Origin, Radius, 12, FColor::Red, false, 1.0f);

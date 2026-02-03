@@ -128,6 +128,8 @@ float ADelveCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damage
     // 체력 감소
     CurrentHealth = FMath::Clamp(CurrentHealth - ActualDamage, 0.0f, MaxHealth);
 
+    WeaponWidgetInstance->HealthBar->UpdateHealthRatio(CurrentHealth/MaxHealth);
+
     // 로그 출력 (맞을 때마다)
     UE_LOG(LogTemp, Warning, TEXT("Player Hit! Damage: %f, Current HP: %f"), ActualDamage, CurrentHealth);
 

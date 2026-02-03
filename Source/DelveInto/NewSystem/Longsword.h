@@ -26,6 +26,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Visual|Animations")
 	TObjectPtr<UPaperFlipbook> ChargePrepFlipbook;
 
+	// --- [추가] 오디오 설정 ---
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	class USoundBase* BaseAttackSound; // 공격(휘두르기) 소리 (예: 슉!)
+
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	class USoundBase* BaseAttackSoundWhenHit;
+	
+	UPROPERTY(EditAnywhere, Category = "Audio")
+	class USoundBase* AlterAttackSound;
+
 #pragma region Alter Attack
 	// --- 차징 3단계 애니메이션 ---
 	UPROPERTY(EditAnywhere, Category = "Combat | Charge Visual")

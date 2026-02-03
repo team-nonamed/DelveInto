@@ -178,10 +178,12 @@ void AWeaponBase::ApplyDamageFanShape(float Damage, float Radius, float HalfAngl
     }
 }
 
-void AWeaponBase::ApplyDamageSphericalCone(float Damage, float Radius, float HalfAngle)
+bool AWeaponBase::ApplyDamageSphericalCone(float Damage, float Radius, float HalfAngle)
 {
+    bool bHit = false;
+    
     UWorld* World = GetWorld();
-    if (!World) return;
+    if (!World) return bHit;
 
     // 1. 판정 기준점 잡기 (중요: 카메라 위치!)
     FVector Origin;
@@ -212,18 +214,18 @@ void AWeaponBase::ApplyDamageSphericalCone(float Damage, float Radius, float Hal
 
     // 2. 디버그 그리기 (손전등 모양 Cone)
     // DrawDebugCone은 원뿔을 그립니다. 끝부분이 평평하지만, 실제 판정은 구형으로 할 겁니다.
-    DrawDebugCone(
-        World,
-        Origin,
-        Forward,
-        Radius,
-        FMath::DegreesToRadians(HalfAngle), // 각도
-        FMath::DegreesToRadians(HalfAngle),
-        60,
-        FColor::Orange, // 주황색으로 표시
-        false,
-        3.0f
-    );
+    // DrawDebugCone(
+    //     World,
+    //     Origin,
+    //     Forward,
+    //     Radius,
+    //     FMath::DegreesToRadians(HalfAngle), // 각도
+    //     FMath::DegreesToRadians(HalfAngle),
+    //     60,
+    //     FColor::Orange, // 주황색으로 표시
+    //     false,
+    //     3.0f
+    // );
     // 구형 끝부분을 표현하기 위해 원도 하나 그립니다 (옵션)
     // DrawDebugSphere(World, Origin, Radius, 30, FColor::Orange, false, 3.0f);
 
@@ -272,7 +274,10 @@ void AWeaponBase::ApplyDamageSphericalCone(float Damage, float Radius, float Hal
                 FDamageEvent DamageEvent;
                 HitActor->TakeDamage(Damage, DamageEvent, GetInstigatorController(), this);
                 UE_LOG(LogTemp, Log, TEXT("3D Cone Hit: %s (Angle: %f)"), *HitActor->GetName(), AngleDegree);
+                bHit = true;
             }
         }
     }
+
+    return bHit;
 }

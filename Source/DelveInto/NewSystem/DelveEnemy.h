@@ -79,6 +79,10 @@ public:
     // 공격 후딜레이가 끝나고 호출 (쿨타임 시작, Idle 복귀)
     virtual void FinishAttack();
 
+    // [추가] 플레이어를 감지하고 추격을 시작할 거리 (단위: cm)
+    UPROPERTY(EditAnywhere, Category = "AI")
+    float DetectRange = 700.0f; 
+
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
     class UBoxComponent* BodyCollision;
@@ -123,4 +127,27 @@ protected:
 
     // 회전 로직 함수
     void FaceToPlayer(float DeltaTime);
+
+    // --- [추가] 오디오 설정 ---
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    class USoundBase* AttackPrepSound; // 차징(기모으기) 소리 (예: 크르릉..)
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    class USoundBase* AttackSound; // 공격(휘두르기) 소리 (예: 슉!)
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    class USoundBase* HitSound; // 맞았을 때 소리
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    class USoundBase* DeathSound; // 죽었을 때 소리
+
+
+    
+
+    // [추가] 추격을 포기하고 돌아갈 거리 (감지 거리보다 약간 크게 잡으면 자연스러움)
+    UPROPERTY(EditAnywhere, Category = "AI")
+    float GiveUpRange = 800.0f;
+
+    // 현재 플레이어를 추격 중인지 확인하는 함수 (AIController에서 사용)
+    bool IsPlayerInDetectRange() const;
 };

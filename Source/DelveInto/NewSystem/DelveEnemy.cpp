@@ -176,7 +176,7 @@ void ADelveEnemy::Tick(float DeltaTime)
     UpdateAnimation();
 
     // [추가] 항상 플레이어를 바라보게 회전
-    if (bAlwaysFacePlayer && !bIsDead)
+    if (bAlwaysFacePlayer && !bIsDead && IsPlayerInDetectRange())
     {
         FaceToPlayer(DeltaTime);
     }
@@ -265,7 +265,10 @@ void ADelveEnemy::ExecuteAttack()
 
     if (bIsDead) return;
 
-    // UE_LOG(LogTemp, Warning, TEXT("Enemy: Melee Slash!"));
+    if (AttackSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
+    }
 
     // 1. 공격 애니메이션
     float ActionDuration = 0.5f;
@@ -282,6 +285,19 @@ void ADelveEnemy::ExecuteAttack()
 
     // 3. 후딜레이 후 종료 예약
     GetWorld()->GetTimerManager().SetTimer(AttackActionTimer, this, &ADelveEnemy::FinishAttack, ActionDuration, false);
+}
+
+bool ADelveEnemy::IsPlayerInDetectRange() const
+{
+    AActor* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (!Player) return false;
+
+    float Dist = GetDistanceTo(Player);
+    
+    // 만약 이미 공격 중이거나 전투 중이라면 GiveUpRange(더 긴 거리)를 쓰고,
+    // 평소 대기 상태라면 DetectRange(짧은 거리)를 씁니다.
+    // (여기서는 간단하게 DetectRange만 사용하겠습니다.)
+    return Dist <= DetectRange;
 }
 
 void ADelveEnemy::FinishAttack()
@@ -465,6 +481,13 @@ float ADelveEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
 
         // E. [핵심] 사망 애니메이션 재생 및 삭제 예약
         float DeathDuration = 1.0f; // 애니메이션 없으면 1초 뒤 삭제
+
+        if (DeathSound)
+        {
+            // 팁: 공격 소리는 약간 피치(음정)를 무작위로 주면 자연스럽습니다.
+            // (1.0f는 볼륨, 1.0f는 피치, 0.0f는 시작 시간, AttenuationSettings는 자동)
+            UGameplayStatics::PlaySoundAtLocation(this, DeathSound, GetActorLocation());
+        }
 
         if (EnemyFlipbook && DeathFlipbook)
         {

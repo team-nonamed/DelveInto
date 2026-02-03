@@ -75,5 +75,5 @@ protected:
 	// Radius: 사거리 (구의 반지름)
 	// HalfAngle: 시선 기준 허용 각도 (예: 45도면 총 90도 범위)
 	UFUNCTION(BlueprintCallable, Category="Combat")
-	void ApplyDamageSphericalCone(float Damage, float Radius, float HalfAngle);
+	bool ApplyDamageSphericalCone(float Damage, float Radius, float HalfAngle);
 };

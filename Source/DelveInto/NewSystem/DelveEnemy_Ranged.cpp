@@ -45,6 +45,8 @@ void ADelveEnemy_Ranged::ExecuteAttack()
 		SpawnParams.Owner = this;            // 주인은 나(적)
 		SpawnParams.Instigator = this;       // 가해자도 나
 
+		UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
+		
 		// 투사체 스폰 (InitializeChargeStats는 호출 안 함 -> 기본 데미지 사용)
 		GetWorld()->SpawnActor<ADelveProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
 	}
