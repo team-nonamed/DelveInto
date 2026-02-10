@@ -128,7 +128,6 @@ void ADelveEnemy_Jumper::ApplyLandingDamage()
 {
     FVector Origin = GetActorLocation();
     float Radius = 150.0f;
-    float Damage = 5.0f;
     
     // 디버그 원 그리기 (빨간색)
     // DrawDebugSphere(GetWorld(), Origin, Radius, 12, FColor::Red, false, 1.0f);

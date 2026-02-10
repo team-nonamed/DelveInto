@@ -73,6 +73,7 @@ ADelveEnemy::ADelveEnemy()
     HealthBarWidget->SetDrawSize(FVector2D(100.0f, 15.0f));
 }
 
+
 void ADelveEnemy::BeginPlay()
 {
     Super::BeginPlay();
@@ -96,78 +97,60 @@ void ADelveEnemy::BeginPlay()
     // GetWorld()->GetTimerManager().SetTimer(DistanceDebugTimer, this, &ADelveEnemy::PrintDistanceToPlayer, 1.0f, true);
 }
 
+
 void ADelveEnemy::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
 
-    // 1. 필수 컴포넌트(캡슐)가 없으면 중단
+    // 1. 필수 컴포넌트 확인
     if (!GetCapsuleComponent()) return;
 
-    // 2. 현재 캡슐의 크기 정보 가져오기
-    float CapRadius = GetCapsuleComponent()->GetScaledCapsuleRadius();      // 반지름
-    float CapHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight(); // 절반 높이
+    // 2. 캡슐 크기 정보
+    float CapRadius = GetCapsuleComponent()->GetScaledCapsuleRadius();
+    float CapHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 
-    // -------------------------------------------------------------------------
-    // [추가] BodyCollision(박스) 크기 자동 동기화
-    // 목표: 두께(X) = 10, 가로(Y) = 캡슐 지름, 높이(Z) = 캡슐 전체 높이
-    // -------------------------------------------------------------------------
+    // 3. BodyCollision(박스) 크기 동기화 (기존 로직 유지)
     if (BodyCollision)
     {
-        // SetBoxExtent는 "중심에서 끝까지의 거리(반지름 개념)"를 입력해야 합니다.
-        // 따라서 원하는 실제 크기(Size)를 2로 나눠서 입력합니다.
-        
-        float ExtentX = 10.0f / 2.0f;  // 두께 10 -> 5.0f
-        float ExtentY = CapRadius;     // 가로 지름(R*2)의 절반 -> R
-        float ExtentZ = CapHalfHeight; // 전체 높이(H*2)의 절반 -> H
+        float ExtentX = 10.0f / 2.0f;
+        float ExtentY = CapRadius;
+        float ExtentZ = CapHalfHeight;
 
-        // 크기 적용
         BodyCollision->SetBoxExtent(FVector(ExtentX, ExtentY, ExtentZ));
-
-        // 위치와 회전 초기화 (캡슐과 정확히 겹치도록 정중앙 배치)
         BodyCollision->SetRelativeLocation(FVector::ZeroVector);
         BodyCollision->SetRelativeRotation(FRotator::ZeroRotator);
     }
 
-    // -------------------------------------------------------------------------
-    // [기존] 플립북 위치 및 스케일 자동 조절 로직
-    // -------------------------------------------------------------------------
-    if (EnemyFlipbook)
+    // 4. [수정됨] 플립북 스케일 자동 조절 (Bounds 방식)
+    if (EnemyFlipbook && EnemyFlipbook->GetFlipbook())
     {
-        // 발바닥 위치로 플립북 이동
+        // 위치 및 회전 설정
         EnemyFlipbook->SetRelativeLocation(FVector(0.0f, 0.0f, -CapHalfHeight));
-        // 스프라이트가 정면을 보게 회전
         EnemyFlipbook->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 
-#if WITH_EDITOR 
-        // 에디터에서만 동작하는 스케일 자동 조절
-        if (bAutoResizeToCapsule && EnemyFlipbook->GetFlipbook())
+        if (bAutoResizeToCapsule)
         {
-            UPaperFlipbook* CurrentFlipbook = EnemyFlipbook->GetFlipbook();
-            if (CurrentFlipbook->GetNumKeyFrames() > 0)
-            {
-                UPaperSprite* FirstSprite = CurrentFlipbook->GetSpriteAtFrame(0);
-                if (FirstSprite)
-                {
-                    // 스프라이트의 실제 월드 크기 계산
-                    float SourcePixelHeight = FirstSprite->GetSourceSize().Y;
-                    float PPU = FirstSprite->GetPixelsPerUnrealUnit();
-                    if (PPU <= 0.0f) PPU = 1.0f; 
-                    
-                    float SpriteWorldHeight = SourcePixelHeight / PPU;
-                    float CapsuleTotalHeight = CapHalfHeight * 2.0f; // 전체 높이
+            // (1) 먼저 스케일을 1.0으로 초기화해야 정확한 '원본 크기'를 잴 수 있음
+            EnemyFlipbook->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+            
+            // (2) 컴포넌트의 경계(Bounds) 업데이트 강제 실행
+            EnemyFlipbook->UpdateBounds();
 
-                    // 캡슐 높이에 딱 맞게 스케일 조절
-                    if (SpriteWorldHeight > 0.0f)
-                    {
-                        float NewScale = CapsuleTotalHeight / SpriteWorldHeight;
-                        EnemyFlipbook->SetRelativeScale3D(FVector(NewScale, NewScale, NewScale));
-                    }
-                }
+            // (3) 현재 플립북의 월드 상 높이 측정 (BoxExtent.Z는 절반 높이이므로 * 2)
+            // Bounds는 빌드된 게임에서도 정상적으로 작동함
+            float SpriteWorldHeight = EnemyFlipbook->Bounds.BoxExtent.Z * 2.0f;
+            float CapsuleTotalHeight = CapHalfHeight * 2.0f;
+
+            // (4) 비율 계산 및 적용
+            if (SpriteWorldHeight > 1.0f) // 0으로 나누기 방지
+            {
+                float NewScale = CapsuleTotalHeight / SpriteWorldHeight;
+                EnemyFlipbook->SetRelativeScale3D(FVector(NewScale, NewScale, NewScale));
             }
         }
-#endif
     }
 }
+
 
 void ADelveEnemy::Tick(float DeltaTime)
 {
@@ -181,6 +164,7 @@ void ADelveEnemy::Tick(float DeltaTime)
         FaceToPlayer(DeltaTime);
     }
 }
+
 
 void ADelveEnemy::FaceToPlayer(float DeltaTime)
 {
@@ -203,6 +187,7 @@ void ADelveEnemy::FaceToPlayer(float DeltaTime)
     // 4. 적용
     SetActorRotation(NewRotation);
 }
+
 
 void ADelveEnemy::UpdateAnimation()
 {
@@ -258,6 +243,7 @@ void ADelveEnemy::StartAttackSequence(AActor* Target)
     GetWorld()->GetTimerManager().SetTimer(AttackPrepTimer, this, &ADelveEnemy::ExecuteAttack, PrepDuration, false);
 }
 
+
 void ADelveEnemy::ExecuteAttack()
 {
     // [기본 동작: 근접 공격]
@@ -287,6 +273,7 @@ void ADelveEnemy::ExecuteAttack()
     GetWorld()->GetTimerManager().SetTimer(AttackActionTimer, this, &ADelveEnemy::FinishAttack, ActionDuration, false);
 }
 
+
 bool ADelveEnemy::IsPlayerInDetectRange() const
 {
     AActor* Player = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
@@ -299,6 +286,7 @@ bool ADelveEnemy::IsPlayerInDetectRange() const
     // (여기서는 간단하게 DetectRange만 사용하겠습니다.)
     return Dist <= DetectRange;
 }
+
 
 void ADelveEnemy::FinishAttack()
 {
@@ -367,11 +355,11 @@ void ADelveEnemy::FinishAttack()
     ResetCooldown();
 }
 
+
 void ADelveEnemy::PerformMeleeDamageCheck()
 {
     FVector Start = GetActorLocation() + GetActorForwardVector() * 50.0f;
     float Radius = 60.0f;
-    float Damage = 10.0f;
 
     TArray<AActor*> OverlappedActors;
     TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
@@ -397,6 +385,7 @@ void ADelveEnemy::PerformMeleeDamageCheck()
     }
 }
 
+
 void ADelveEnemy::ReturnToIdle()
 {
     if (!bIsDead && IdleFlipbook && EnemyFlipbook)
@@ -407,12 +396,14 @@ void ADelveEnemy::ReturnToIdle()
     }
 }
 
+
 void ADelveEnemy::ResetCooldown()
 {
     bCanAttack = true;
     bIsAttacking = false; // 다시 행동 가능
     // UE_LOG(LogTemp, Warning, TEXT("Enemy: Attack Ready"));
 }
+
 
 // --- 피격 및 기타 ---
 
@@ -461,6 +452,11 @@ float ADelveEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
     {
         bIsDead = true;
 
+        if (OnEnemyDeath.IsBound())
+        {
+            OnEnemyDeath.Broadcast(this);
+        }
+
         // A. 사망 시에는 피격 빨간색을 즉시 해제하고 원래 색으로 복구 (선택 사항)
         // 죽는 모션이 빨간색인 게 싫으면 아래 주석 해제하세요.
         // ResetSpriteColor(); 
@@ -506,10 +502,12 @@ float ADelveEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
     return ActualDamage;
 }
 
+
 void ADelveEnemy::ResetSpriteColor()
 {
     if (EnemyFlipbook) EnemyFlipbook->SetSpriteColor(FLinearColor::White);
 }
+
 
 void ADelveEnemy::PrintDistanceToPlayer()
 {
@@ -521,6 +519,7 @@ void ADelveEnemy::PrintDistanceToPlayer()
         GEngine->AddOnScreenDebugMessage(100, 1.0f, FColor::Yellow, FString::Printf(TEXT("Enemy Dist: %.1f"), Dist));
     }
 }
+
 
 void ADelveEnemy::DestroySelf()
 {

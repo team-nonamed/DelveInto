@@ -15,11 +15,11 @@ ADelveDoor::ADelveDoor()
     DoorFrame = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DoorFrame"));
     DoorFrame->SetupAttachment(RootComponent);
 
-    // 3. 문짝 (실제로 길을 막는 비주얼)
-    DoorPanel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DoorPanel"));
-    DoorPanel->SetupAttachment(RootComponent);
-    // 문짝 위치를 문틀 안쪽으로 살짝 조정 (필요시)
-    DoorPanel->SetRelativeLocation(FVector(0.f, 0.f, 0.f)); 
+    // // 3. 문짝 (실제로 길을 막는 비주얼)
+    // DoorPanel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DoorPanel"));
+    // DoorPanel->SetupAttachment(RootComponent);
+    // // 문짝 위치를 문틀 안쪽으로 살짝 조정 (필요시)
+    // DoorPanel->SetRelativeLocation(FVector(0.f, 0.f, 0.f)); 
 
     // 4. 블로커 (플레이어 이동 차단용 투명벽)
     BlockerCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BlockerCollision"));

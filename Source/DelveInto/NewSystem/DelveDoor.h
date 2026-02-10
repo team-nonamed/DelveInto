@@ -26,7 +26,7 @@ public:
 
 	// 문짝 (열리고 닫힐 때 사라지거나 움직이는 부분)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door")
-	class UStaticMeshComponent* DoorPanel;
+	class AActor* DoorPanel;
 
 	// 문이 닫혔을 때 플레이어를 막는 충돌체
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door")

@@ -13,9 +13,17 @@ ADelveProjectile::ADelveProjectile()
     // 1. 충돌체 설정
     CollisionComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
     CollisionComp->InitSphereRadius(15.0f);
+    
+    // 1. 프로필 설정
     CollisionComp->SetCollisionProfileName(TEXT("Projectile")); 
+
+    // 2. [추가] 중요! WorldDynamic(트리거 박스 등)과는 부딪히지 않고 통과하도록 설정
+    CollisionComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
+    
+    // (선택) 아예 무시하고 싶다면 ECR_Overlap 대신 ECR_Ignore 사용
+    // CollisionComp->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Ignore);
+
     CollisionComp->OnComponentHit.AddDynamic(this, &ADelveProjectile::OnHit);
-    RootComponent = CollisionComp;
 
     // 2. 나이아가라 컴포넌트 (날아가는 모습)
     ProjectileEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ProjectileEffect"));

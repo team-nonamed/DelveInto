@@ -7,6 +7,8 @@
 #include "DelveHealthBarWidget.h"
 #include "DelveEnemy.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDeathSignature, class ADelveEnemy*, DeadEnemy);
+
 UCLASS()
 class DELVEINTO_API ADelveEnemy : public ACharacter
 {
@@ -81,7 +83,10 @@ public:
 
     // [추가] 플레이어를 감지하고 추격을 시작할 거리 (단위: cm)
     UPROPERTY(EditAnywhere, Category = "AI")
-    float DetectRange = 700.0f; 
+    float DetectRange = 700.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Damage")
+    float Damage = 10.0f;
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
@@ -89,9 +94,7 @@ protected:
     
     // 차징 끝난 후 실행되는 로직 (자식이 오버라이드 가능)
     virtual void ExecuteAttack(); 
-
-
-
+    
     // 실제 근접 데미지 판정 (Sphere Trace)
     void PerformMeleeDamageCheck();
 
@@ -140,14 +143,15 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Audio")
     class USoundBase* DeathSound; // 죽었을 때 소리
-
-
     
-
     // [추가] 추격을 포기하고 돌아갈 거리 (감지 거리보다 약간 크게 잡으면 자연스러움)
     UPROPERTY(EditAnywhere, Category = "AI")
     float GiveUpRange = 800.0f;
 
     // 현재 플레이어를 추격 중인지 확인하는 함수 (AIController에서 사용)
     bool IsPlayerInDetectRange() const;
+
+public:
+    UPROPERTY(BlueprintAssignable, Category = "Events")
+    FOnEnemyDeathSignature OnEnemyDeath;
 };
