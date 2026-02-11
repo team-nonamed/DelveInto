@@ -1,18 +1,9 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "Dungeons/RoomType.h"
 #include "GameFramework/Actor.h"
 #include "DelveRoomBase.generated.h"
-
-// 방의 종류를 구분하기 위한 열거형 (미니맵 표시 등에 사용)
-UENUM(BlueprintType)
-enum class ERoomType : uint8
-{
-    Normal,
-    Treasure,
-    Boss,
-    Shop
-};
 
 UCLASS()
 class DELVEINTO_API ADelveRoomBase : public AActor
