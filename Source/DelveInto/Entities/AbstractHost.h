@@ -6,7 +6,7 @@
 #include "Interfaces/Hurts/HurtHandler.h"
 #include "AbstractHost.generated.h"
 
-class UAttackHandler;
+class UCombatHandler;
 class UAbstractSkillHandler;
 class UInventoryHandler;
 
@@ -34,13 +34,13 @@ public:
 	virtual FHurtResult HandleHurt(const FHurtRequest& Request) override;
 
 	// 핸들러 접근자
-	UAttackHandler* GetAttackHandler() const { return AttackHandler; }
+	UCombatHandler* GetAttackHandler() const { return AttackHandler; }
 	UAbstractSkillHandler* GetSkillHandler() const { return SkillHandler; }
 	UInventoryHandler* GetInventoryHandler() const { return InventoryHandler; }
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Handlers")
-	TObjectPtr<UAttackHandler> AttackHandler;
+	TObjectPtr<UCombatHandler> AttackHandler;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Handlers")
 	TObjectPtr<UAbstractSkillHandler> SkillHandler;

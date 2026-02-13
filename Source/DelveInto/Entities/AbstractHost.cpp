@@ -8,7 +8,7 @@ AAbstractHost::AAbstractHost()
 	// Host는 핸들러들을 “기본 서브오브젝트”로 소유하는 것을 권장
 	InventoryHandler = CreateDefaultSubobject<UInventoryHandler>(TEXT("InventoryHandler"));
 	SkillHandler     = CreateDefaultSubobject<UAbstractSkillHandler>(TEXT("SkillHandler"));
-	AttackHandler    = CreateDefaultSubobject<UAttackHandler>(TEXT("AttackHandler"));
+	AttackHandler    = CreateDefaultSubobject<UCombatHandler>(TEXT("AttackHandler"));
 }
 
 void AAbstractHost::HandleSkillInput(ESkillSlot Designator, ETriggerEvent TriggerEvent)
