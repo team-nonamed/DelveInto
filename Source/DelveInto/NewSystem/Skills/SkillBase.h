@@ -191,7 +191,8 @@ protected:
 	// 차징 진행도 계산 (매 Tick마다 업데이트)
 	float CalculateChargingProgress(float DeltaTime);
 
-	void USkillBase::ApplyCooldown();
+	// cooldown 적용
+	void ApplyCooldown();
 	
     // 상태 변경 및 애니메이션 요청
     void SetState(ESkillState NewState);

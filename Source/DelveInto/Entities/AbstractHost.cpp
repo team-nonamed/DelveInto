@@ -1,7 +1,8 @@
 ﻿#include "Entities/AbstractHost.h"
-#include "Combat/AttackHandler.h"
+
 #include "Skills/Handlers/AbstractSkillHandler.h"
 #include "Items/InventoryHandler.h"
+#include "NewSystem/Actors/Handlers/CombatHandler.h"
 
 AAbstractHost::AAbstractHost()
 {
@@ -15,7 +16,6 @@ void AAbstractHost::HandleSkillInput(ESkillSlot Designator, ETriggerEvent Trigge
 {
 	if (AttackHandler)
 	{
-		AttackHandler->HandleInput(Designator, TriggerEvent);
 	}
 }
 
