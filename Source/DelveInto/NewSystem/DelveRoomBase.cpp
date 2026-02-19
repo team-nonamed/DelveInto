@@ -1,8 +1,7 @@
 ﻿#include "DelveRoomBase.h"
 #include "Components/BoxComponent.h"
-#include "Components/ArrowComponent.h"
-#include "DelveCharacter.h" 
 #include "DelveDoor.h" // 문 액터 헤더 (따로 만드셔야 함)
+#include "Entities/Characters/DelveCharacter.h"
 
 ADelveRoomBase::ADelveRoomBase()
 {

@@ -1,5 +1,6 @@
 ﻿#include "SpawnEnemyTriggerBox.h"
-#include "NewSystem/DelveCharacter.h" // 플레이어 헤더
+
+#include "NewSystem/Entities/Characters/DelveCharacter.h"
 #include "NewSystem/Dungeons/Props/Rooms/RoomBase.h"
 
 class ARoomBase;

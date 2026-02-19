@@ -1,8 +1,8 @@
 ﻿// DelveHealthBarWidget.cpp
 
-#include "DelveHealthBarWidget.h"
+#include "HealthBarWidget.h"
 
-void UDelveHealthBarWidget::UpdateHealthRatio(float Ratio)
+void UHealthBarWidget::UpdateHealthRatio(float Ratio)
 {
 	if (HealthBar)
 	{

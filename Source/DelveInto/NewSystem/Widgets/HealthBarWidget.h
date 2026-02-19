@@ -5,10 +5,10 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/ProgressBar.h" // 프로그레스 바 헤더
-#include "DelveHealthBarWidget.generated.h"
+#include "HealthBarWidget.generated.h"
 
 UCLASS()
-class DELVEINTO_API UDelveHealthBarWidget : public UUserWidget
+class DELVEINTO_API UHealthBarWidget : public UUserWidget
 {
 	GENERATED_BODY()
 

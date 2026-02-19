@@ -10,6 +10,7 @@
 #include "PaperSprite.h"
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Widgets/HealthBarWidget.h"
 
 class ADelveEnemy_Jumper;
 
@@ -86,7 +87,7 @@ void ADelveEnemy::BeginPlay()
     if (HealthBarWidget)
     {
         // 위젯 컴포넌트에서 실제 위젯 객체 가져오기 (Cast 필요)
-        UDelveHealthBarWidget* Bar = Cast<UDelveHealthBarWidget>(HealthBarWidget->GetUserWidgetObject());
+        UHealthBarWidget* Bar = Cast<UHealthBarWidget>(HealthBarWidget->GetUserWidgetObject());
         if (Bar)
         {
             Bar->UpdateHealthRatio(1.0f); // 100%
@@ -437,7 +438,7 @@ float ADelveEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
     // 4. 위젯 업데이트
     if (HealthBarWidget)
     {
-        UDelveHealthBarWidget* Bar = Cast<UDelveHealthBarWidget>(HealthBarWidget->GetUserWidgetObject());
+        UHealthBarWidget* Bar = Cast<UHealthBarWidget>(HealthBarWidget->GetUserWidgetObject());
         if (Bar)
         {
             float Ratio = (MaxHealth > 0.0f) ? (CurrentHealth / MaxHealth) : 0.0f;

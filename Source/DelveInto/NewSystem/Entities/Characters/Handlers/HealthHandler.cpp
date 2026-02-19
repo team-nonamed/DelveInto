@@ -84,3 +84,16 @@ float UHealthHandler::ApplyDamage(float DamageAmount)
 	// [수정] 적용된 데미지(혹은 0)를 반환해야 합니다.
 	return DamageAmount;
 }
+
+float UHealthHandler::ApplyHeal(float HealAmount)
+{
+	if (bIsDead || HealAmount <= 0.0f) return 0.0f;
+    
+	CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.0f, MaxHealth);
+    
+	if (OnHealed.IsBound())
+	{
+		OnHealed.Broadcast(MaxHealth, CurrentHealth);
+	}
+	return HealAmount;
+}

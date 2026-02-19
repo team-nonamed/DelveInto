@@ -4,7 +4,6 @@
 #include "GameFramework/Character.h"
 #include "PaperFlipbookComponent.h"
 #include "PaperFlipbook.h"
-#include "DelveHealthBarWidget.h"
 #include "DelveEnemy.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDeathSignature, class ADelveEnemy*, DeadEnemy);

@@ -2,7 +2,7 @@
 
 #include "Skills/Handlers/AbstractSkillHandler.h"
 #include "Items/InventoryHandler.h"
-#include "NewSystem/Actors/Handlers/CombatHandler.h"
+#include "NewSystem/Entities/Characters/Handlers/CombatHandler.h"
 
 AAbstractHost::AAbstractHost()
 {

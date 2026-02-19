@@ -41,6 +41,9 @@ public:
 	FOnDamagedDelegate OnDamaged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnHealedDelegate OnHealed;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnDeathDelegate OnDeath;
 	
 #pragma endregion 
@@ -49,6 +52,8 @@ public:
 public: 
 	// 데미지 처리 함수
 	float ApplyDamage(float DamageAmount);
+
+	float ApplyHeal(float HealAmount);
 
 #pragma endregion
 };
