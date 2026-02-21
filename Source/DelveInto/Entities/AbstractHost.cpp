@@ -1,8 +1,8 @@
 ﻿#include "Entities/AbstractHost.h"
 
 #include "Skills/Handlers/AbstractSkillHandler.h"
-#include "Items/InventoryHandler.h"
 #include "NewSystem/Entities/Characters/Handlers/CombatHandler.h"
+#include "NewSystem/Entities/Characters/Handlers/InventoryHandler.h"
 
 AAbstractHost::AAbstractHost()
 {

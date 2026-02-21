@@ -10,6 +10,7 @@ class UInputAction;
 class UCameraComponent;
 class UCombatHandler;
 class UHealthHandler;
+class UInventoryHandler; // [신규] 인벤토리 전방 선언
 class UHandDisplayWidget;
 
 UCLASS(Abstract, Blueprintable)
@@ -41,6 +42,10 @@ public:
     // 체력 총괄 핸들러
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UHealthHandler* HealthHandler;
+
+    // [신규] 인벤토리 총괄 핸들러
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UInventoryHandler* InventoryHandler;
 
     // --- UI ---
     UPROPERTY(EditAnywhere, Category = "UI")

@@ -286,8 +286,11 @@ void USkillBase::HandlePostCharging()
         }
 
         OnPostCharging.Broadcast(CurrentState, PostChargingFlipbook, true);
+        return;
         
     }
+
+    OnPostCharging.Broadcast(CurrentState, PostChargingFlipbook, true);
 }
 
 void USkillBase::HandlePreCasting()
