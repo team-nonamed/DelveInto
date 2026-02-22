@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "ComboTerminationType.h"
+#include "GameplayTagContainer.h"
 #include "PaperFlipbook.h"
 #include "SkillExecutionType.h"
 #include "SkillState.h"
@@ -14,6 +15,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogSkill, Log, All);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillActivatedDelegate, USkillBase*, SkillInst);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnStateTransitionDelegate, ESkillState, SkillState, UPaperFlipbook*, Flipbook, bool, IsLoopAnimation);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSkillDeactivatedDelegate, USkillBase*, SkillInst);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnSkillHitSignature, class USkillBase*, InstigatorSkill, AActor*, Victim, float, BaseDamage, FGameplayTag, AttackType);
 
 UCLASS(Abstract, Blueprintable, ClassGroup=(Skill), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API USkillBase : public UActorComponent
@@ -256,6 +258,10 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	virtual void ActivateSkill();
 	
+	// (예시) 충돌체 오버랩이나 애니메이션 노티파이에서 호출될 내부 함수
+	// 이제 이 함수는 직접 TakeDamage를 부르지 않습니다.
+	virtual void ProcessHit(AActor* HitActor, float InBaseDamage, FGameplayTag InAttackType);
+	
 	#pragma region Skill State Handling
 		UFUNCTION(BlueprintCallable, Category = "Skill")
 		virtual void HandlePreCharging();
@@ -323,4 +329,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnSkillDeactivatedDelegate OnSkillDeactivated;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnSkillHitSignature OnSkillHit;
 };
