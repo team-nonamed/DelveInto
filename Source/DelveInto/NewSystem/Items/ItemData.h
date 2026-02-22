@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "ItemEffect.h"
-#include "ItemTypes.h"
+#include "PaperSprite.h"
 #include "Engine/DataAsset.h"
 #include "ItemData.generated.h"
 
@@ -32,7 +32,7 @@ public:
 
 	// 인벤토리 UI에 표시할 아이콘 이미지
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Visual")
-	UTexture2D* ItemIcon;
+	UPaperSprite* ItemIcon;
 
 	// 상점 매매가
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Economy")

@@ -1,5 +1,6 @@
 ﻿#include "DelvePlayerProjectile.h"
-#include "DelveEnemy.h" // 적을 타격해야 하므로 헤더 포함
+
+#include "Entities/DelveEnemy.h"
 #include "Kismet/GameplayStatics.h"
 
 ADelvePlayerProjectile::ADelvePlayerProjectile()

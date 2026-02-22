@@ -116,7 +116,7 @@ protected:
     virtual void ReturnToIdle();
     void ResetSpriteColor();
     void PrintDistanceToPlayer();
-    void UpdateAnimation();
+    virtual void UpdateAnimation();
     void DestroySelf();               // 액터 삭제 함수 (추가)
 
     // [추가] 항상 플레이어를 바라볼 것인가?

@@ -7,7 +7,7 @@
 #include "Engine/DamageEvents.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetSystemLibrary.h"
-#include "NewSystem/DelveEnemy.h"
+#include "NewSystem/Entities/DelveEnemy.h"
 #include "NewSystem/Entities/Characters/DelveCharacter.h"
 
 bool UCombatUtil::ApplyDamageSphere(const UObject* WorldContextObject, AActor* Instigator, float Damage, float Radius, FVector OriginOffset, AActor* DamageCauser)

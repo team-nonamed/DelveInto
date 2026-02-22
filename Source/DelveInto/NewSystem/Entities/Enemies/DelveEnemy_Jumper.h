@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "DelveEnemy.h"
+#include "NewSystem/Entities/DelveEnemy.h"
 #include "DelveEnemy_Jumper.generated.h"
 
 UCLASS()

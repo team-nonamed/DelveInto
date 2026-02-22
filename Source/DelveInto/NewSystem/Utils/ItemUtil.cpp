@@ -1,45 +1,51 @@
 ﻿#include "ItemUtil.h"
+#include "Engine/World.h"
 #include "Engine/GameInstance.h"
+#include "Math/UnrealMathUtility.h"
 #include "NewSystem/Items/ItemInstance.h"
 #include "NewSystem/Items/Databases/ItemDBSubsystem.h"
 
-AItemInstance* UItemUtil::SpawnDroppedItem(const UObject* WorldContextObject, FGameplayTag ItemIDToSpawn, int32 Amount, FVector SpawnLocation)
+TArray<AItemInstance*> UItemUtil::SpawnDroppedItems(const UObject* WorldContextObject, FGameplayTag ItemIDToSpawn, int32 Amount, FVector SpawnLocation)
 {
-	// 태그가 유효하지 않으면 곧바로 취소
-	if (!WorldContextObject || !ItemIDToSpawn.IsValid()) return nullptr;
+    TArray<AItemInstance*> SpawnedItems;
 
-	UWorld* World = WorldContextObject->GetWorld();
-	if (!World) return nullptr;
+    if (!WorldContextObject || !ItemIDToSpawn.IsValid() || Amount <= 0) return SpawnedItems;
 
-	// 1. 게임 인스턴스에서 아이템 DB 서브시스템을 가져옵니다.
-	UItemDBSubsystem* ItemDB = World->GetGameInstance()->GetSubsystem<UItemDBSubsystem>();
-	if (!ItemDB) return nullptr;
+    UWorld* World = WorldContextObject->GetWorld();
+    if (!World) return SpawnedItems;
 
-	// 2. DB에 아이템 정보를 물어봅니다.
-	FItemDBRow ItemInfo;
-	if (!ItemDB->GetItemInfo(ItemIDToSpawn, ItemInfo))
-	{
-		// ToString()을 호출하면 로그에 "Item.ID.Gold" 처럼 예쁘게 찍힙니다.
-		UE_LOG(LogTemp, Error, TEXT("ItemDB에 해당 ID(%s)의 아이템 정보가 없습니다!"), *ItemIDToSpawn.ToString());
-		return nullptr;
-	}
+    UItemDBSubsystem* ItemDB = World->GetGameInstance()->GetSubsystem<UItemDBSubsystem>();
+    if (!ItemDB) return SpawnedItems;
 
-	// 3. 스폰 진행
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+    FItemDBRow ItemInfo;
+    if (!ItemDB->GetItemInfo(ItemIDToSpawn, ItemInfo)) return SpawnedItems;
 
-	AItemInstance* SpawnedItem = World->SpawnActor<AItemInstance>(
-		ItemInfo.ItemInstanceClass, 
-		SpawnLocation, 
-		FRotator::ZeroRotator, 
-		SpawnParams
-	);
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	// 4. 데이터 주입
-	if (SpawnedItem)
-	{
-		SpawnedItem->InitializeItem(ItemInfo.ItemData, Amount);
-	}
+    for (int32 i = 0; i < Amount; ++i)
+    {
+        FVector RandomOffset = FVector(
+            FMath::RandRange(-50.0f, 50.0f), 
+            FMath::RandRange(-50.0f, 50.0f), 
+            FMath::RandRange(10.0f, 40.0f)
+        );
+        FVector FinalSpawnLocation = SpawnLocation + RandomOffset;
 
-	return SpawnedItem;
+        // [핵심] 순수 C++ 클래스를 다이렉트로 스폰합니다!
+        AItemInstance* SpawnedItem = World->SpawnActor<AItemInstance>(
+            AItemInstance::StaticClass(), 
+            FinalSpawnLocation, 
+            FRotator::ZeroRotator, 
+            SpawnParams
+        );
+
+        if (SpawnedItem)
+        {
+            SpawnedItem->InitializeItem(ItemInfo.ItemData, 1);
+            SpawnedItems.Add(SpawnedItem);
+        }
+    }
+
+    return SpawnedItems;
 }

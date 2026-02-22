@@ -7,7 +7,7 @@ void UItemDBSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	// [핵심 수정] 생성자가 아니므로 LoadObject를 사용하여 데이터 테이블을 동적으로 불러옵니다!
 	// 경로(TEXT)는 본인의 실제 데이터 테이블 경로로 꼭 맞춰주세요.
-	UDataTable* ItemTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/Data/DT_ItemDB.DT_ItemDB"));
+	UDataTable* ItemTable = LoadObject<UDataTable>(nullptr, TEXT("/Game/NewSystems/Data/Items/DT_ItemDB.DT_ItemDB"));
     
 	if (ItemTable)
 	{

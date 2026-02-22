@@ -1,7 +1,5 @@
 ﻿#include "DelveEnemy.h"
 
-#include "DelveAIController.h"
-#include "DelveEnemy_Jumper.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/DamageEvents.h"
@@ -10,7 +8,9 @@
 #include "PaperSprite.h"
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
-#include "Widgets/HealthBarWidget.h"
+#include "Enemies/DelveEnemy_Jumper.h"
+#include "NewSystem/DelveAIController.h"
+#include "NewSystem/Widgets/HealthBarWidget.h"
 
 class ADelveEnemy_Jumper;
 

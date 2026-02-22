@@ -1,8 +1,8 @@
 ﻿#include "DelveAIController.h"
 #include "Kismet/GameplayStatics.h"
-#include "DelveEnemy.h"
-#include "DelveEnemy_Jumper.h"
 #include "Components/CapsuleComponent.h"
+#include "Entities/DelveEnemy.h"
+#include "Entities/Enemies/DelveEnemy_Jumper.h"
 
 void ADelveAIController::OnPossess(APawn* InPawn)
 {

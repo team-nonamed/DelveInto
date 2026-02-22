@@ -1,7 +1,7 @@
 ﻿#include "DelveEnemy_Ranged.h"
 
-#include "Entities/DelveProjectile.h"
 #include "Kismet/GameplayStatics.h"
+#include "NewSystem/Entities/DelveProjectile.h"
 
 ADelveEnemy_Ranged::ADelveEnemy_Ranged()
 {

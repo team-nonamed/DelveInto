@@ -11,6 +11,7 @@
 #include "Handlers/HealthHandler.h"
 // [신규] 인벤토리 핸들러 경로 (프로젝트 폴더 구조에 맞춰 수정하세요)
 #include "Handlers/InventoryHandler.h" 
+#include "NewSystem/Interfaces/Interactable.h"
 
 ADelveCharacter::ADelveCharacter()
 {
@@ -102,6 +103,8 @@ void ADelveCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
         
         // [수정] 기존 코드에서 JumpAction으로 잘못 바인딩되어 있던 DashAction 버그 수정
         EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Completed, this, &ADelveCharacter::Input_DashReleased);
+
+        EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_InteractPressed);
     }
 }
 
@@ -192,5 +195,38 @@ void ADelveCharacter::HandleDeath(ACharacter* DeadCharacter)
     if (APlayerController* PC = Cast<APlayerController>(GetController()))
     {
         DisableInput(PC);
+    }
+}
+
+void ADelveCharacter::Input_InteractPressed()
+{
+    if (!FirstPersonCamera) return;
+
+    // 1. 카메라 위치에서 바라보는 방향으로 선(Ray)을 쏩니다.
+    FVector StartLoc = FirstPersonCamera->GetComponentLocation();
+    FVector EndLoc = StartLoc + (FirstPersonCamera->GetForwardVector() * InteractRange);
+
+    FHitResult HitResult;
+    FCollisionQueryParams CollisionParams;
+    CollisionParams.AddIgnoredActor(this); // 내 자신(플레이어)은 검사에서 제외
+
+    // 2. 물리적 충돌 검사 (선에 무언가 맞았는지 확인)
+    bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartLoc, EndLoc, ECC_Visibility, CollisionParams);
+
+    // (디버그) 선이 제대로 나가는지 확인하고 싶을 때 주석 해제하세요!
+    DrawDebugLine(GetWorld(), StartLoc, EndLoc, FColor::Red, false, 2.0f, 0, 1.0f);
+
+    if (bHit && HitResult.GetActor())
+    {
+        AActor* HitActor = HitResult.GetActor();
+
+        // 3. [핵심] 맞은 액터가 상호작용 '인터페이스'를 가지고 있는지 확인합니다!
+        if (HitActor->Implements<UInteractable>())
+        {
+            // 인터페이스 함수 실행 (플레이어 자신을 넘겨줍니다)
+            IInteractable::Execute_Interact(HitActor, this);
+            
+            UE_LOG(LogTemp, Display, TEXT("%s와 상호작용 성공!"), *HitActor->GetName());
+        }
     }
 }

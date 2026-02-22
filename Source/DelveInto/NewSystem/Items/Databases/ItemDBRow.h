@@ -20,8 +20,4 @@ struct DELVEINTO_API FItemDBRow : public FTableRowBase
 	// 2. 이 아이템에 해당하는 실제 데이터 에셋
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item DB")
 	UItemData* ItemData = nullptr;
-
-	// 3. 바닥에 스폰할 때 쓸 블루프린트 액터 클래스
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item DB")
-	TSubclassOf<AItemInstance> ItemInstanceClass;
 };

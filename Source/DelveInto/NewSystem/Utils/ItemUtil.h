@@ -1,22 +1,26 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "PaperFlipbook.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "NewSystem/Items/ItemInstance.h"
+#include "GameplayTagContainer.h"
 #include "ItemUtil.generated.h"
 
-/**
- * 프로젝트 전역에서 사용할 정적 헬퍼 함수 모음
- */
+class AItemInstance;
+
 UCLASS()
 class DELVEINTO_API UItemUtil : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
 public:
-	UFUNCTION(BlueprintPure, Category = "Item | Spawn")
-	static AItemInstance* SpawnDroppedItem(const UObject* WorldContextObject, FGameplayTag ItemIDToSpawn, int32 Amount, FVector SpawnLocation);
+	/**
+	 * 지정된 개수(Amount)만큼 C++ AItemInstance를 1개 단위로 쪼개어 스폰합니다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Item|Spawn", meta=(WorldContext="WorldContextObject"))
+	static TArray<AItemInstance*> SpawnDroppedItems(
+		const UObject* WorldContextObject, 
+		FGameplayTag ItemIDToSpawn,  // [핵심] 클래스 지정 없이 태그만 받습니다!
+		int32 Amount, 
+		FVector SpawnLocation
+	);
 };

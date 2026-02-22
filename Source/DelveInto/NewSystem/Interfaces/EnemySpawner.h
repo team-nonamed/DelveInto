@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "NewSystem/DelveEnemy.h"
+#include "NewSystem/Entities/DelveEnemy.h"
 #include "UObject/Interface.h"
 #include "EnemySpawner.generated.h"
 

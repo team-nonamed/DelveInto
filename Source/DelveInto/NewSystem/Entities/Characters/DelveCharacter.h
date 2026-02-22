@@ -75,6 +75,8 @@ public:
     UInputAction* JumpAction;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* DashAction;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    UInputAction* InteractAction;
 
 private:
     // --- 입력 콜백 함수들 ---
@@ -104,4 +106,11 @@ private:
 
     UFUNCTION()
     void HandleDeath(ACharacter* DeadCharacter);
+
+    // [추가] 상호작용 입력 콜백 함수
+    void Input_InteractPressed();
+    
+    // [추가] 상호작용 최대 거리
+    UPROPERTY(EditDefaultsOnly, Category = "Interaction")
+    float InteractRange = 300.0f;
 };
