@@ -21,7 +21,8 @@ public class DelveInto : ModuleRules
 			"GameplayTags",
 			"NavigationSystem",
 			"Paper2D",
-			"Niagara",
+			"Niagara", 
+			"DeveloperSettings"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate",

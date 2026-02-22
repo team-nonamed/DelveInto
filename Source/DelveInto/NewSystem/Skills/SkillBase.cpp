@@ -713,3 +713,14 @@ bool USkillBase::ExecuteSkillLogic_Implementation()
     return false;
     // 여기서 투사체를 스폰하거나, 범위 공격 판정을 하거나, 버프를 줍니다.
 }
+
+void USkillBase::ProcessHit(AActor* HitActor, float InBaseDamage)
+{
+    if (!HitActor) return;
+
+    // 자신은 그저 "맞췄다!"라고 방송만 하고 끝냅니다. CombatHandler의 존재는 모릅니다.
+    if (OnSkillHit.IsBound())
+    {
+        OnSkillHit.Broadcast(this, HitActor, InBaseDamage);
+    }
+}
