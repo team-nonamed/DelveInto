@@ -5,12 +5,12 @@
 
 // [신규 시스템 헤더들]
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h" // [신규] 캐릭터 무브먼트 컴포넌트 제어용
 #include "NewSystem/Widgets/HandDisplayWidget.h"
 #include "NewSystem/Widgets/HealthBarWidget.h"
 #include "Handlers/CombatHandler.h"
 #include "Handlers/HealthHandler.h"
 #include "Handlers/InventoryHandler.h" 
-// [신규] 퍽 관련 헤더 추가 (경로는 실제 프로젝트 구조에 맞춰주세요)
 #include "NewSystem/Entities/Characters/Handlers/PerkHandler.h"
 #include "NewSystem/Interfaces/Interactable.h"
 #include "NewSystem/Widgets/Perks/PerkSelectionWidget.h"
@@ -30,7 +30,6 @@ ADelveCharacter::ADelveCharacter()
     HealthHandler = CreateDefaultSubobject<UHealthHandler>(TEXT("HealthHandler"));
     InventoryHandler = CreateDefaultSubobject<UInventoryHandler>(TEXT("InventoryHandler"));
     
-    // [신규] 퍽 핸들러 생성
     PerkHandler = CreateDefaultSubobject<UPerkHandler>(TEXT("PerkHandler"));
 }
 
@@ -68,6 +67,43 @@ void ADelveCharacter::BeginPlay()
             CombatHandler->Initialize(WeaponWidgetInstance);
         }
     }
+
+    // ==========================================================
+    // [신규] 스탯 연동 로직 (흐르는 바람 퍽 연동)
+    // ==========================================================
+    if (GetCharacterMovement())
+    {
+        // 1. 초기 걷기 속도 저장 (언리얼 기본값은 보통 600.0f)
+        BaseWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+    }
+
+    if (PerkHandler)
+    {
+        // 2. 퍽 핸들러에서 발생하는 스탯 변경 이벤트 수신 대기
+        PerkHandler->OnStatChanged.AddDynamic(this, &ADelveCharacter::HandleStatChanged);
+    }
+}
+
+// -------------------------------------------------------------
+// [신규] 스탯 변경 이벤트 처리
+// -------------------------------------------------------------
+void ADelveCharacter::HandleStatChanged(EStatCategory StatType, float DeltaValue)
+{
+    // 스탯 종류가 '이동 속도(MovementSpeed)' 일 때
+    if (StatType == EStatCategory::MovementSpeed)
+    {
+        // DeltaValue에 0.1(10%), 0.2(20%) 등이 들어오며, 이를 배율에 더해줍니다.
+        CurrentMoveSpeedMultiplier += DeltaValue;
+
+        if (GetCharacterMovement())
+        {
+            // (기본 속도) * (1.0 + 증가치) 로 최종 속도 적용
+            GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed * CurrentMoveSpeedMultiplier;
+            
+            UE_LOG(LogTemp, Warning, TEXT(">> [캐릭터 스탯 적용] 이동 속도 배율: %f | 최종 속도: %f"), 
+                CurrentMoveSpeedMultiplier, GetCharacterMovement()->MaxWalkSpeed);
+        }
+    }
 }
 
 // -------------------------------------------------------------
@@ -85,19 +121,17 @@ void ADelveCharacter::TriggerLevelUp()
     if (SelectionUI)
     {
         SelectionUI->AddToViewport();
-        // 3개의 선택지를 띄우고, PerkHandler를 넘겨줍니다.
         SelectionUI->ShowChoices(PerkHandler, 3);
     }
 }
 
-// 콘솔창에서 바로 호출 가능한 테스트용 함수
 void ADelveCharacter::DebugLevelUp()
 {
     TriggerLevelUp();
 }
 
 // -------------------------------------------------------------
-// 이하 기존 입력 바인딩 로직들은 동일하게 유지
+// 이하 기존 로직 유지
 // -------------------------------------------------------------
 void ADelveCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {

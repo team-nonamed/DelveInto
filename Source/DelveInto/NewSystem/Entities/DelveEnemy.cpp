@@ -423,8 +423,11 @@ float ADelveEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
     float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
     CurrentHealth = FMath::Clamp(CurrentHealth - ActualDamage, 0.0f, MaxHealth);
 
+    // [추가] 피격 받은 데미지와 남은 체력을 로그로 출력
+    UE_LOG(LogTemp, Warning, TEXT("[%s] 피격 데미지: %f | 남은 체력: %f / %f"), *GetName(), ActualDamage, CurrentHealth, MaxHealth);
+
     // =============================================================
-    // [추가] 피격 효과: 1초간 빨간색으로 변경
+    // 피격 효과: 1초간 빨간색으로 변경
     // =============================================================
     if (EnemyFlipbook)
     {
@@ -481,8 +484,6 @@ float ADelveEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
 
         if (DeathSound)
         {
-            // 팁: 공격 소리는 약간 피치(음정)를 무작위로 주면 자연스럽습니다.
-            // (1.0f는 볼륨, 1.0f는 피치, 0.0f는 시작 시간, AttenuationSettings는 자동)
             UGameplayStatics::PlaySoundAtLocation(this, DeathSound, GetActorLocation());
         }
 

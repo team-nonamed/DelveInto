@@ -12,9 +12,11 @@ class UCombatHandler;
 class UHealthHandler;
 class UInventoryHandler;
 class UHandDisplayWidget;
-// [신규] 퍽 시스템 관련 전방 선언
 class UPerkHandler;
 class UPerkSelectionWidget;
+
+// [신규] EStatCategory 전방 선언 (PerkHandler.h에 정의되어 있다고 가정)
+enum class EStatCategory : uint8;
 
 UCLASS(Abstract, Blueprintable)
 class DELVEINTO_API ADelveCharacter : public ACharacter
@@ -47,7 +49,6 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInventoryHandler* InventoryHandler;
 
-    // [신규] 퍽 총괄 핸들러 추가
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UPerkHandler* PerkHandler;
 
@@ -58,21 +59,17 @@ public:
     UPROPERTY()
     UHandDisplayWidget* WeaponWidgetInstance;
 
-    // [신규] 퍽 선택 창 UI 클래스
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UPerkSelectionWidget> PerkSelectionWidgetClass;
 
     // --- 진행(Progression) 로직 ---
-    // [신규] 레벨업 시 UI를 띄우는 함수
     UFUNCTION(BlueprintCallable, Category = "Progression")
     void TriggerLevelUp();
 
-    // [신규] 콘솔 창에서 "DebugLevelUp"을 입력하여 즉시 테스트할 수 있는 디버그 함수
     UFUNCTION(Exec)
     void DebugLevelUp();
 
     // --- 입력 ---
-    // (기존 입력 변수들은 그대로 유지...)
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputMappingContext* DefaultMappingContext;
 
@@ -95,6 +92,19 @@ public:
     UInputAction* DashAction;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* InteractAction;
+
+protected:
+    // ==========================================================
+    // [신규] 스탯 관리 (흐르는 바람 등)
+    // ==========================================================
+    UFUNCTION()
+    void HandleStatChanged(EStatCategory StatType, float DeltaValue);
+
+    UPROPERTY()
+    float BaseWalkSpeed;
+
+    UPROPERTY()
+    float CurrentMoveSpeedMultiplier = 1.0f;
 
 private:
     // --- 입력 콜백 함수들 ---

@@ -4,12 +4,21 @@ void UPerkEffect_StatModifier::OnApplied(UPerkHandler* Handler, int32 PerkLevel)
 {
 	if (!Handler) return;
 
-	CurrentLevel = PerkLevel;
+	// [핵심 안전장치] 이미 적용된 레벨이 있다면, 기존 수치를 먼저 빼서 초기화해 줍니다!
+	if (CurrentLevel > 0)
+	{
+		float OldStat = GetValueForLevel(CurrentLevel);
+		Handler->OnStatChanged.Broadcast(TargetStat, -OldStat);
+	}
 
-	// 적용할 수치 추출 (예: 체력 10 증가)
+	CurrentLevel = PerkLevel;
 	float StatIncrease = GetValueForLevel(CurrentLevel);
 
-	// [핵심] 캐릭터 캐스팅 없이, 이벤트만 발생시킵니다.
+	// 디버그 로그 출력
+	UE_LOG(LogTemp, Warning, TEXT("--- [PerkEffect] 스탯 변경 발생! ---"));
+	UE_LOG(LogTemp, Warning, TEXT("스탯 타겟: %d | 변동 수치: %f"), (int32)TargetStat, StatIncrease);
+
+	// 캐릭터에게 이벤트 송출
 	Handler->OnStatChanged.Broadcast(TargetStat, StatIncrease);
 }
 

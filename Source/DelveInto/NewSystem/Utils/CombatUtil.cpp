@@ -1,6 +1,5 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "CombatUtil.h"
 
 #include "Camera/CameraComponent.h"
@@ -9,6 +8,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "NewSystem/Entities/DelveEnemy.h"
 #include "NewSystem/Entities/Characters/DelveCharacter.h"
+#include "NewSystem/Skills/SkillBase.h"
 
 bool UCombatUtil::ApplyDamageSphere(const UObject* WorldContextObject, AActor* Instigator, float Damage, float Radius, FVector OriginOffset, AActor* DamageCauser)
 {
@@ -18,13 +18,11 @@ bool UCombatUtil::ApplyDamageSphere(const UObject* WorldContextObject, AActor* I
     UWorld* World = WorldContextObject->GetWorld();
     if (!World) return bHit;
 
-    // 시전자 정보 캐싱
     FVector Start = Instigator->GetActorLocation() + 
                     (Instigator->GetActorForwardVector() * OriginOffset.X) + 
                     (Instigator->GetActorRightVector() * OriginOffset.Y) + 
                     (Instigator->GetActorUpVector() * OriginOffset.Z);
     
-    // 디버그 드로우
     DrawDebugSphere(World, Start, Radius, 12, FColor::Red, false, 1.0f);
 
     TArray<AActor*> OverlappedActors;
@@ -32,23 +30,35 @@ bool UCombatUtil::ApplyDamageSphere(const UObject* WorldContextObject, AActor* I
     ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
 
     TArray<AActor*> ActorsToIgnore;
-    ActorsToIgnore.Add(Instigator); // 시전자 본인 무시
+    ActorsToIgnore.Add(Instigator);
 
     UKismetSystemLibrary::SphereOverlapActors(
         WorldContextObject, Start, Radius, ObjectTypes, nullptr, ActorsToIgnore, OverlappedActors
     );
 
-    // DamageCauser가 없으면 Instigator를 Causer로 사용
     AActor* ActualCauser = DamageCauser ? DamageCauser : Instigator;
     AController* InstigatorController = Instigator->GetInstigatorController();
+
+    // [수정] 호출자가 스킬인지 확인합니다.
+    USkillBase* CallerSkill = Cast<USkillBase>(const_cast<UObject*>(WorldContextObject));
 
     for (AActor* HitActor : OverlappedActors)
     {
         if (HitActor)
         {
-            FDamageEvent DamageEvent;
-            HitActor->TakeDamage(Damage, DamageEvent, InstigatorController, ActualCauser);
-            UE_LOG(LogTemp, Log, TEXT("Sphere Hit: %s, Damage: %f"), *HitActor->GetName(), Damage);
+            if (CallerSkill)
+            {
+                // 플레이어 스킬이 호출한 경우: 퍽 연산을 위해 CombatHandler로 넘김
+                CallerSkill->OnSkillHit.Broadcast(CallerSkill, HitActor, Damage);
+            }
+            else
+            {
+                // 몬스터 등이 호출한 경우: 즉시 데미지 적용
+                FDamageEvent DamageEvent;
+                HitActor->TakeDamage(Damage, DamageEvent, InstigatorController, ActualCauser);
+            }
+            
+            UE_LOG(LogTemp, Log, TEXT("Sphere Hit: %s, BaseDamage: %f"), *HitActor->GetName(), Damage);
             bHit = true;
         }
     }
@@ -67,7 +77,6 @@ bool UCombatUtil::ApplyDamageFanShape(const UObject* WorldContextObject, AActor*
     FVector Origin = Instigator->GetActorLocation();
     FVector Forward = Instigator->GetActorForwardVector();
 
-    // 디버그 드로우
     DrawDebugCylinder(World, Origin - FVector(0,0,HalfHeight), Origin + FVector(0,0,HalfHeight), Radius, 12, FColor::Silver, false, 1.0f);
     FVector LeftDir = Forward.RotateAngleAxis(-HalfAngle, FVector::UpVector);
     FVector RightDir = Forward.RotateAngleAxis(HalfAngle, FVector::UpVector);
@@ -88,12 +97,15 @@ bool UCombatUtil::ApplyDamageFanShape(const UObject* WorldContextObject, AActor*
     AActor* ActualCauser = DamageCauser ? DamageCauser : Instigator;
     AController* InstigatorController = Instigator->GetInstigatorController();
 
+    // [수정] 호출자가 스킬인지 확인
+    USkillBase* CallerSkill = Cast<USkillBase>(const_cast<UObject*>(WorldContextObject));
+
     for (AActor* HitActor : OverlappedActors)
     {
         if (HitActor)
         {
             FVector ToTarget = HitActor->GetActorLocation() - Origin;
-            ToTarget.Z = 0.0f; // 높이 차이 제거
+            ToTarget.Z = 0.0f; 
             
             FVector FlatForward = Forward;
             FlatForward.Z = 0.0f;
@@ -106,8 +118,16 @@ bool UCombatUtil::ApplyDamageFanShape(const UObject* WorldContextObject, AActor*
 
             if (AngleDegree <= HalfAngle)
             {
-                FDamageEvent DamageEvent;
-                HitActor->TakeDamage(Damage, DamageEvent, InstigatorController, ActualCauser);
+                if (CallerSkill)
+                {
+                    CallerSkill->OnSkillHit.Broadcast(CallerSkill, HitActor, Damage);
+                }
+                else
+                {
+                    FDamageEvent DamageEvent;
+                    HitActor->TakeDamage(Damage, DamageEvent, InstigatorController, ActualCauser);
+                }
+
                 UE_LOG(LogTemp, Log, TEXT("Fan Hit: %s (Angle: %f)"), *HitActor->GetName(), AngleDegree);
                 bHit = true;
             }
@@ -128,7 +148,6 @@ bool UCombatUtil::ApplyDamageSphericalCone(const UObject* WorldContextObject, AA
     FVector Origin;
     FVector Forward;
 
-    // Instigator가 Character라면 카메라 위치 우선 사용
     if (ACharacter* OwnerChar = Cast<ACharacter>(Instigator))
     {
         if (UCameraComponent* Cam = OwnerChar->FindComponentByClass<UCameraComponent>())
@@ -163,36 +182,40 @@ bool UCombatUtil::ApplyDamageSphericalCone(const UObject* WorldContextObject, AA
     AController* InstigatorController = Instigator->GetInstigatorController();
 
     DrawDebugCone(
-        World,
-        Origin,
-        Forward,
-        Radius,
-        FMath::DegreesToRadians(HalfAngle), // 각도
-        FMath::DegreesToRadians(HalfAngle),
-        60,
-        FColor::Orange, // 주황색으로 표시
-        false,
-        3.0f
+        World, Origin, Forward, Radius,
+        FMath::DegreesToRadians(HalfAngle), FMath::DegreesToRadians(HalfAngle),
+        60, FColor::Orange, false, 3.0f
     );
+
+    // [수정] 호출자가 스킬인지 확인
+    USkillBase* CallerSkill = Cast<USkillBase>(const_cast<UObject*>(WorldContextObject));
 
     for (AActor* HitActor : OverlappedActors)
     {
         if (HitActor)
         {
             FVector ToTarget = HitActor->GetActorLocation() - Origin;
-            
             if (ToTarget.SizeSquared() > Radius * Radius) continue;
 
             ToTarget.Normalize();
-
             float DotValue = FVector::DotProduct(Forward, ToTarget);
             float AngleDegree = FMath::RadiansToDegrees(FMath::Acos(DotValue));
 
             if (AngleDegree <= HalfAngle)
             {
-                FDamageEvent DamageEvent;
-                HitActor->TakeDamage(Damage, DamageEvent, InstigatorController, ActualCauser);
-                UE_LOG(LogTemp, Log, TEXT("3D Cone Hit: %s (Angle: %f)"), *HitActor->GetName(), AngleDegree);
+                if (CallerSkill)
+                {
+                    // 델리게이트를 통해 CombatHandler로 전달 (퍽 연산 진행)
+                    CallerSkill->OnSkillHit.Broadcast(CallerSkill, HitActor, Damage);
+                }
+                else
+                {
+                    // 몬스터의 공격 등은 다이렉트로 데미지 전달
+                    FDamageEvent DamageEvent;
+                    HitActor->TakeDamage(Damage, DamageEvent, InstigatorController, ActualCauser);
+                }
+
+                UE_LOG(LogTemp, Warning, TEXT("3D Cone Hit: %s (Angle: %f)"), *HitActor->GetName(), AngleDegree);
                 bHit = true;
             }
         }
@@ -212,14 +235,13 @@ bool UCombatUtil::IsEnemy(AActor* ActorA, AActor* ActorB)
     bool bIsAEnemy = ActorA->IsA(ADelveEnemy::StaticClass());
     bool bIsBEnemy = ActorB->IsA(ADelveEnemy::StaticClass());
 
-    // 한쪽이 플레이어고 다른 쪽이 적이면 true
     return (bIsAPlayer && bIsBEnemy) || (bIsAEnemy && bIsBPlayer);
 }
 
 bool UCombatUtil::IsFriendly(AActor* ActorA, AActor* ActorB)
 {
     if (!ActorA || !ActorB) return false;
-    if (ActorA == ActorB) return true; // 자기 자신은 아군
+    if (ActorA == ActorB) return true;
 
     bool bIsAPlayer = ActorA->IsA(ADelveCharacter::StaticClass());
     bool bIsBPlayer = ActorB->IsA(ADelveCharacter::StaticClass());
@@ -227,7 +249,6 @@ bool UCombatUtil::IsFriendly(AActor* ActorA, AActor* ActorB)
     bool bIsAEnemy = ActorA->IsA(ADelveEnemy::StaticClass());
     bool bIsBEnemy = ActorB->IsA(ADelveEnemy::StaticClass());
 
-    // 둘 다 플레이어거나, 둘 다 적이면 true
     return (bIsAPlayer && bIsBPlayer) || (bIsAEnemy && bIsBEnemy);
 }
 
@@ -238,8 +259,16 @@ bool UCombatUtil::ApplyDamageIfEnemy(const UObject* WorldContextObject, AActor* 
         AActor* ActualCauser = DamageCauser ? DamageCauser : Instigator;
         AController* InstigatorController = Instigator ? Instigator->GetInstigatorController() : nullptr;
         
-        FDamageEvent DamageEvent;
-        Target->TakeDamage(Damage, DamageEvent, InstigatorController, ActualCauser);
+        USkillBase* CallerSkill = Cast<USkillBase>(const_cast<UObject*>(WorldContextObject));
+        if (CallerSkill)
+        {
+            CallerSkill->OnSkillHit.Broadcast(CallerSkill, Target, Damage);
+        }
+        else
+        {
+            FDamageEvent DamageEvent;
+            Target->TakeDamage(Damage, DamageEvent, InstigatorController, ActualCauser);
+        }
         return true;
     }
     return false;
