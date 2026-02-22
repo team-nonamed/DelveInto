@@ -6,5 +6,6 @@ enum class ERoomType : uint8
 	Normal,
 	Start,
 	Boss,
-	Treasure
+	Treasure,
+	NPC
 };

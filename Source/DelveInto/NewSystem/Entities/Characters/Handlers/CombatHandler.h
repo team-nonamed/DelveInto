@@ -6,7 +6,6 @@
 #include "Components/ActorComponent.h"
 #include "NewSystem/Weapons/WeaponData.h"
 #include "NewSystem/Widgets/HandDisplayWidget.h"
-#include "GameplayTagContainer.h" // 데미지 연산 시 AttackType 판별을 위해 추가
 #include "CombatHandler.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCombatHandler, Log, All);
@@ -66,7 +65,7 @@ protected:
     void HandleSkillActivation(USkillBase* NewSkill);
 
     UFUNCTION()
-    void HandleSkillHit(USkillBase* InstigatorSkill, AActor* Victim, float BaseDamage, FGameplayTag AttackType);
+    void HandleSkillHit(USkillBase* InstigatorSkill, AActor* Victim, float BaseDamage);
 #pragma endregion
 
 #pragma region Methods
@@ -82,7 +81,7 @@ public:
 
     // [신규] 퍽(Perk) 시스템의 연산을 거친 최종 데미지 산출
     UFUNCTION(BlueprintCallable, Category = "Combat")
-    float CalculateFinalDamage(float BaseDamage, AActor* Victim, FGameplayTag AttackType);
+    float CalculateFinalDamage(float BaseDamage, AActor* Victim, int32 ComboCount, EWeaponSkillSlot AttackSlot);
 
 protected:
     void RegisterHandlers(USkillBase* NewSkill);

@@ -9,35 +9,35 @@
 #include "NewSystem/Widgets/HealthBarWidget.h"
 #include "Handlers/CombatHandler.h"
 #include "Handlers/HealthHandler.h"
-// [신규] 인벤토리 핸들러 경로 (프로젝트 폴더 구조에 맞춰 수정하세요)
 #include "Handlers/InventoryHandler.h" 
+// [신규] 퍽 관련 헤더 추가 (경로는 실제 프로젝트 구조에 맞춰주세요)
+#include "NewSystem/Entities/Characters/Handlers/PerkHandler.h"
 #include "NewSystem/Interfaces/Interactable.h"
+#include "NewSystem/Widgets/Perks/PerkSelectionWidget.h"
 
 ADelveCharacter::ADelveCharacter()
 {
     PrimaryActorTick.bCanEverTick = true;
     
-    // 캡슐 초기화
     GetCapsuleComponent()->InitCapsuleSize(40.f, 96.0f);
 
-    // 카메라 생성 및 부착
     FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
     FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
     FirstPersonCamera->SetRelativeLocation(FVector(0.f, 0.f, 64.f));
     FirstPersonCamera->bUsePawnControlRotation = true;
 
-    // [핵심] 핸들러 컴포넌트 생성
     CombatHandler = CreateDefaultSubobject<UCombatHandler>(TEXT("CombatHandler"));
     HealthHandler = CreateDefaultSubobject<UHealthHandler>(TEXT("HealthHandler"));
-    // [신규] 인벤토리 핸들러 생성
     InventoryHandler = CreateDefaultSubobject<UInventoryHandler>(TEXT("InventoryHandler"));
+    
+    // [신규] 퍽 핸들러 생성
+    PerkHandler = CreateDefaultSubobject<UPerkHandler>(TEXT("PerkHandler"));
 }
 
 void ADelveCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    // 1. 입력 매핑 컨텍스트 추가
     if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
     {
         if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
@@ -46,14 +46,13 @@ void ADelveCharacter::BeginPlay()
         }
     }
 
-    // 2. 체력 핸들러 이벤트 바인딩
     if (HealthHandler)
     {
         HealthHandler->OnDamaged.AddDynamic(this, &ADelveCharacter::HandleDamaged);
         HealthHandler->OnDeath.AddDynamic(this, &ADelveCharacter::HandleDeath);
     }
 
-    // 3. UI 생성 및 CombatHandler 초기화
+    // UI 생성 (기존 로직 유지)
     if (WeaponWidgetClass)
     {
         WeaponWidgetInstance = CreateWidget<UHandDisplayWidget>(GetWorld(), WeaponWidgetClass);
@@ -61,30 +60,54 @@ void ADelveCharacter::BeginPlay()
         {
             WeaponWidgetInstance->AddToViewport();
             
-            // UI 생성 직후 현재 체력비율을 한 번 갱신해줌
             if (HealthHandler && WeaponWidgetInstance->HealthBar)
             {
                 WeaponWidgetInstance->HealthBar->UpdateHealthRatio(HealthHandler->CurrentHealth / HealthHandler->MaxHealth);
             }
             
-            // 컴뱃 핸들러에 위젯 제어권 넘김
             CombatHandler->Initialize(WeaponWidgetInstance);
         }
     }
 }
 
-// --- 입력 바인딩 ---
+// -------------------------------------------------------------
+// [신규] 퍽 시스템: 레벨업 시 UI 띄우기
+// -------------------------------------------------------------
+void ADelveCharacter::TriggerLevelUp()
+{
+    if (!PerkSelectionWidgetClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("PerkSelectionWidgetClass가 설정되지 않았습니다! (캐릭터 블루프린트 확인)"));
+        return;
+    }
+
+    UPerkSelectionWidget* SelectionUI = CreateWidget<UPerkSelectionWidget>(GetWorld(), PerkSelectionWidgetClass);
+    if (SelectionUI)
+    {
+        SelectionUI->AddToViewport();
+        // 3개의 선택지를 띄우고, PerkHandler를 넘겨줍니다.
+        SelectionUI->ShowChoices(PerkHandler, 3);
+    }
+}
+
+// 콘솔창에서 바로 호출 가능한 테스트용 함수
+void ADelveCharacter::DebugLevelUp()
+{
+    TriggerLevelUp();
+}
+
+// -------------------------------------------------------------
+// 이하 기존 입력 바인딩 로직들은 동일하게 유지
+// -------------------------------------------------------------
 void ADelveCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 
     if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
     {
-        // 이동 / 시점
         EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ADelveCharacter::Move);
         EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ADelveCharacter::Look);
         
-        // 스킬 액션 바인딩
         EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_PrimaryPressed);
         EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Completed, this, &ADelveCharacter::Input_PrimaryReleased);
 
@@ -100,34 +123,24 @@ void ADelveCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
         EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_JumpPressed);
 
         EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_DashPressed);
-        
-        // [수정] 기존 코드에서 JumpAction으로 잘못 바인딩되어 있던 DashAction 버그 수정
         EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Completed, this, &ADelveCharacter::Input_DashReleased);
 
         EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_InteractPressed);
     }
 }
 
-// --- 입력 라우팅 로직 ---
 void ADelveCharacter::Input_PrimaryPressed()   { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::Primary, true); }
 void ADelveCharacter::Input_PrimaryReleased()  { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::Primary, false); }
-
 void ADelveCharacter::Input_SecondaryPressed() { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::Secondary, true); }
 void ADelveCharacter::Input_SecondaryReleased(){ if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::Secondary, false); }
-
 void ADelveCharacter::Input_SkillQPressed()    { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::SkillQ, true); }
 void ADelveCharacter::Input_SkillQReleased()   { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::SkillQ, false); }
-
 void ADelveCharacter::Input_SkillEPressed()    { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::SkillE, true); }
 void ADelveCharacter::Input_SkillEReleased()   { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::SkillE, false); }
-
 void ADelveCharacter::Input_JumpPressed()      { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::Jump, true); }
-
 void ADelveCharacter::Input_DashPressed()      { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::Dash, true); }
 void ADelveCharacter::Input_DashReleased()     { if (CombatHandler) CombatHandler->HandleInput(EWeaponSkillSlot::Dash, false); }
 
-
-// --- 이동 및 시점 ---
 void ADelveCharacter::Move(const FInputActionValue& Value)
 {
     FVector2D MovementVector = Value.Get<FVector2D>();
@@ -152,7 +165,6 @@ void ADelveCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // [디버그] 매 프레임 체력 상태 표시
     if (HealthHandler)
     {
         if (!HealthHandler->bIsDead)
@@ -167,7 +179,6 @@ void ADelveCharacter::Tick(float DeltaTime)
     }
 }
 
-// --- 데미지 및 체력 이벤트 처리 ---
 float ADelveCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
     float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
@@ -202,30 +213,23 @@ void ADelveCharacter::Input_InteractPressed()
 {
     if (!FirstPersonCamera) return;
 
-    // 1. 카메라 위치에서 바라보는 방향으로 선(Ray)을 쏩니다.
     FVector StartLoc = FirstPersonCamera->GetComponentLocation();
     FVector EndLoc = StartLoc + (FirstPersonCamera->GetForwardVector() * InteractRange);
 
     FHitResult HitResult;
     FCollisionQueryParams CollisionParams;
-    CollisionParams.AddIgnoredActor(this); // 내 자신(플레이어)은 검사에서 제외
+    CollisionParams.AddIgnoredActor(this);
 
-    // 2. 물리적 충돌 검사 (선에 무언가 맞았는지 확인)
     bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartLoc, EndLoc, ECC_Visibility, CollisionParams);
 
-    // (디버그) 선이 제대로 나가는지 확인하고 싶을 때 주석 해제하세요!
     DrawDebugLine(GetWorld(), StartLoc, EndLoc, FColor::Red, false, 2.0f, 0, 1.0f);
 
     if (bHit && HitResult.GetActor())
     {
         AActor* HitActor = HitResult.GetActor();
-
-        // 3. [핵심] 맞은 액터가 상호작용 '인터페이스'를 가지고 있는지 확인합니다!
         if (HitActor->Implements<UInteractable>())
         {
-            // 인터페이스 함수 실행 (플레이어 자신을 넘겨줍니다)
             IInteractable::Execute_Interact(HitActor, this);
-            
             UE_LOG(LogTemp, Display, TEXT("%s와 상호작용 성공!"), *HitActor->GetName());
         }
     }

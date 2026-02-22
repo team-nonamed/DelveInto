@@ -309,32 +309,49 @@ bool UCombatHandler::HandleInput(EWeaponSkillSlot Slot, bool bIsPressed)
     }
 }
 
-float UCombatHandler::CalculateFinalDamage(float BaseDamage, AActor* Victim, FGameplayTag AttackType)
+float UCombatHandler::CalculateFinalDamage(float BaseDamage, AActor* Victim, int32 ComboCount, EWeaponSkillSlot AttackSlot)
 {
-    float FinalDamage = BaseDamage;
+   float FinalDamage = BaseDamage;
     
-    // [핵심 연동] 공격 대상, 공격 타입(태그)을 기반으로 Perk 시스템에 데미지 변조를 위임
-    if (PerkHandler)
-    {
-        PerkHandler->OnCalculateDamage.Broadcast(GetOwner(), Victim, AttackType, FinalDamage);
-    }
+   if (PerkHandler)
+   {
+      PerkHandler->OnCalculateDamage.Broadcast(GetOwner(), Victim, AttackSlot, ComboCount, FinalDamage);
+   }
     
-    return FinalDamage;
+   return FinalDamage;
 }
 
-void UCombatHandler::HandleSkillHit(USkillBase* InstigatorSkill, AActor* Victim, float BaseDamage, FGameplayTag AttackType)
+void UCombatHandler::HandleSkillHit(USkillBase* InstigatorSkill, AActor* Victim, float BaseDamage)
 {
    if (!Victim || !GetOwner()) return;
 
-   float FinalDamage = BaseDamage;
-
-   // 1. 퍽(Perk) 시스템 연동하여 데미지 변조
-   if (PerkHandler)
+   EWeaponSkillSlot ActivatedSlot = EWeaponSkillSlot::Null; 
+   for (const auto& Pair : Skills)
    {
-      PerkHandler->OnCalculateDamage.Broadcast(GetOwner(), Victim, AttackType, FinalDamage);
+      if (Pair.Value == InstigatorSkill)
+      {
+         ActivatedSlot = Pair.Key;
+         break;
+      }
    }
 
-   // 2. 최종 산출된 데미지로 실제 타격(TakeDamage) 수행
+   // [신규] 스킬의 현재 콤보 카운트를 가져옵니다. 
+   // 내부적으로 0부터 시작하므로, 기획자 친화적으로 +1을 해줍니다. (1타=1, 2타=2, 3타=3)
+   int32 CurrentCombo = InstigatorSkill->CurrentComboCount + 1;
+
+   float FinalDamage = BaseDamage;
+
+   if (PerkHandler)
+   {
+      // [수정] CurrentCombo 변수를 추가로 브로드캐스트합니다.
+      PerkHandler->OnCalculateDamage.Broadcast(GetOwner(), Victim, ActivatedSlot, CurrentCombo, FinalDamage);
+   }
+
    FDamageEvent DamageEvent;
    Victim->TakeDamage(FinalDamage, DamageEvent, GetOwner()->GetInstigatorController(), GetOwner());
+
+   if (PerkHandler)
+   {
+      PerkHandler->OnHitTarget.Broadcast(GetOwner(), Victim, FinalDamage, ActivatedSlot);
+   }
 }

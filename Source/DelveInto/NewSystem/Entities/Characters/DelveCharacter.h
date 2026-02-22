@@ -10,8 +10,11 @@ class UInputAction;
 class UCameraComponent;
 class UCombatHandler;
 class UHealthHandler;
-class UInventoryHandler; // [신규] 인벤토리 전방 선언
+class UInventoryHandler;
 class UHandDisplayWidget;
+// [신규] 퍽 시스템 관련 전방 선언
+class UPerkHandler;
+class UPerkSelectionWidget;
 
 UCLASS(Abstract, Blueprintable)
 class DELVEINTO_API ADelveCharacter : public ACharacter
@@ -35,17 +38,18 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
     UCameraComponent* FirstPersonCamera;
 
-    // 전투 총괄 핸들러
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UCombatHandler* CombatHandler;
 
-    // 체력 총괄 핸들러
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UHealthHandler* HealthHandler;
 
-    // [신규] 인벤토리 총괄 핸들러
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UInventoryHandler* InventoryHandler;
+
+    // [신규] 퍽 총괄 핸들러 추가
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UPerkHandler* PerkHandler;
 
     // --- UI ---
     UPROPERTY(EditAnywhere, Category = "UI")
@@ -54,7 +58,21 @@ public:
     UPROPERTY()
     UHandDisplayWidget* WeaponWidgetInstance;
 
+    // [신규] 퍽 선택 창 UI 클래스
+    UPROPERTY(EditAnywhere, Category = "UI")
+    TSubclassOf<UPerkSelectionWidget> PerkSelectionWidgetClass;
+
+    // --- 진행(Progression) 로직 ---
+    // [신규] 레벨업 시 UI를 띄우는 함수
+    UFUNCTION(BlueprintCallable, Category = "Progression")
+    void TriggerLevelUp();
+
+    // [신규] 콘솔 창에서 "DebugLevelUp"을 입력하여 즉시 테스트할 수 있는 디버그 함수
+    UFUNCTION(Exec)
+    void DebugLevelUp();
+
     // --- 입력 ---
+    // (기존 입력 변수들은 그대로 유지...)
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputMappingContext* DefaultMappingContext;
 
@@ -107,10 +125,9 @@ private:
     UFUNCTION()
     void HandleDeath(ACharacter* DeadCharacter);
 
-    // [추가] 상호작용 입력 콜백 함수
+    // --- 상호작용 ---
     void Input_InteractPressed();
     
-    // [추가] 상호작용 최대 거리
     UPROPERTY(EditDefaultsOnly, Category = "Interaction")
     float InteractRange = 300.0f;
 };

@@ -71,6 +71,14 @@ private:
     // 1. 데이터 상에서 방 배치 (알고리즘)
     void CreateLayout();
 
+    // [수정] bUseFurthest 옵션 추가 (기본값은 false)
+    bool AttachSpecialRoom(ERoomType RoomType, bool bUseFurthest = false);
+    
+    // [신규] 특정 좌표 주변에 이미 배치된 방이 몇 개인지 반환
+    int32 GetNeighborCount(FIntPoint Coord);
+
+
+    
     // 2. 실제 방 액터 스폰
     void SpawnRooms();
 
