@@ -53,9 +53,10 @@ ADelveEnemy* USimpleEnemySpawner::SpawnEnemy_Implementation()
 	return SpawnedActor;
 }
 
-#if WITH_EDITOR
+
 void USimpleEnemySpawner::UpdatePreviewRenderer_Implementation()
 {
+#if WITH_EDITOR
 	if (!PreviewFlipbook)
 	{
 		return;
@@ -79,13 +80,16 @@ void USimpleEnemySpawner::UpdatePreviewRenderer_Implementation()
 	{
 		PreviewFlipbook->SetFlipbook(nullptr);
 	}
+#endif
 }
 
+#if WITH_EDITOR
 void USimpleEnemySpawner::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
+
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	Execute_UpdatePreviewRenderer(this);
-}
 
+}
 #endif

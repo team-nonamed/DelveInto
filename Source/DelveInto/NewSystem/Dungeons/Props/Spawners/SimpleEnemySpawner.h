@@ -31,11 +31,12 @@ protected:
 #pragma region Methods
 protected:
 	virtual void BeginPlay() override;
+
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 	virtual void UpdatePreviewRenderer_Implementation() override;
-#endif
 	
 public:
 	virtual ADelveEnemy* SpawnEnemy_Implementation() override;

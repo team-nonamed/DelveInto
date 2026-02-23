@@ -22,11 +22,14 @@ public class DelveInto : ModuleRules
 			"NavigationSystem",
 			"Paper2D",
 			"Niagara", 
-			"DeveloperSettings"
+			"DeveloperSettings",
+			"LevelSequence",
+			"MovieScene",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate",
-			"SlateCore" });
+			"SlateCore"
+		});
 
 		PublicIncludePaths.AddRange(new string[] {
 			"DelveInto",

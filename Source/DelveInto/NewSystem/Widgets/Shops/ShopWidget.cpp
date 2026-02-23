@@ -58,13 +58,15 @@ void UShopWidget::CloseShop()
 		APlayerController* PC = Cast<APlayerController>(BuyerCharacter->GetController());
 		if (PC)
 		{
-			// 게임 전용 모드로 복구 및 마우스 숨김
+			// [추가] 차단했던 이동 및 시선 입력을 다시 허용합니다.
+			PC->SetIgnoreMoveInput(false);
+			PC->SetIgnoreLookInput(false);
+
+			// 게임 전용 모드로 복구
 			FInputModeGameOnly InputMode;
 			PC->SetInputMode(InputMode);
 			PC->bShowMouseCursor = false;
 		}
 	}
-
-	// 위젯 파괴
 	RemoveFromParent();
 }

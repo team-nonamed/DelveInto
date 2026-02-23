@@ -3,6 +3,11 @@
 
 DEFINE_LOG_CATEGORY(LogHandDisplayWidget);
 
+void UHandDisplayWidget::InitializeUI(UInventoryHandler* InHandler)
+{
+	Inventory->InitializeSlots(InHandler);
+}
+
 void UHandDisplayWidget::PlayFlipbook(UPaperFlipbook* NewFlipbook, bool bLoop, float NewPlaySpeed)
 {
     // 플립북이 바뀌거나, 멈춰있었다면 시간 초기화

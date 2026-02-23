@@ -35,7 +35,7 @@ bool USkill_LongSword_BaseAttack::ExecuteSkillLogic_Implementation()
 
 	// 2. 공격 판정 (사거리 400.0f, 각도 15.0f)
 	// CombatUtil을 사용하여 깔끔하게 처리
-	bool bHit = UCombatUtil::ApplyDamageSphericalCone(this, OwnerActor, Damage, 400.0f, 15.0f, OwnerActor);
+	bool bHit = UCombatUtil::ApplyDamageSphericalCone(this, OwnerActor, Damage, 600.0f, 40.0f, OwnerActor);
 
 	// 3. 사운드 재생
 	if (USoundBase* SoundToPlay = bHit ? CastButHurtSuccessSound : CastButHurtFailedSound)

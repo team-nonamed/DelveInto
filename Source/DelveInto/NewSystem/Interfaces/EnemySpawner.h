@@ -20,10 +20,9 @@ class DELVEINTO_API IEnemySpawner
 	GENERATED_BODY()
 
 protected:
-#if WITH_EDITOR
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Debug")
 	void UpdatePreviewRenderer();
-#endif
+
 	
 public:
 	// =============================================================

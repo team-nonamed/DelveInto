@@ -14,13 +14,13 @@ class DELVEINTO_API UItemUtil : public UBlueprintFunctionLibrary
 
 public:
 	/**
-	 * 지정된 개수(Amount)만큼 C++ AItemInstance를 1개 단위로 쪼개어 스폰합니다.
+	 * @param LaunchImpulse 아이템이 튀어나갈 초기 힘의 방향과 세기입니다.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Item|Spawn", meta=(WorldContext="WorldContextObject"))
 	static TArray<AItemInstance*> SpawnDroppedItems(
 		const UObject* WorldContextObject, 
-		FGameplayTag ItemIDToSpawn,  // [핵심] 클래스 지정 없이 태그만 받습니다!
+		FGameplayTag ItemIDToSpawn, 
 		int32 Amount, 
-		FVector SpawnLocation
+		FVector SpawnLocation, 
+		FVector LaunchImpulse = FVector::ZeroVector // [신규] 기본값은 0
 	);
 };

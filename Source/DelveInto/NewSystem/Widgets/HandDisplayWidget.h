@@ -5,6 +5,7 @@
 #include "PaperFlipbook.h"
 #include "Components/Image.h"
 #include "HealthBarWidget.h" // 체력바 헤더 확인 필요
+#include "InventoryWidget.h"
 #include "HandDisplayWidget.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogHandDisplayWidget, Log, All);
@@ -15,8 +16,14 @@ class DELVEINTO_API UHandDisplayWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable, Category = "HandDisplayWidget | UI")
+	void InitializeUI(UInventoryHandler* InHandler);
+	
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<UHealthBarWidget> HealthBar;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UInventoryWidget> Inventory;
 
 protected:
 	UPROPERTY(meta = (BindWidget))

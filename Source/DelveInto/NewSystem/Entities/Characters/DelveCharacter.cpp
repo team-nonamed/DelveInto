@@ -58,6 +58,7 @@ void ADelveCharacter::BeginPlay()
         if (WeaponWidgetInstance)
         {
             WeaponWidgetInstance->AddToViewport();
+            WeaponWidgetInstance->InitializeUI(InventoryHandler);
             
             if (HealthHandler && WeaponWidgetInstance->HealthBar)
             {
@@ -81,6 +82,15 @@ void ADelveCharacter::BeginPlay()
     {
         // 2. 퍽 핸들러에서 발생하는 스탯 변경 이벤트 수신 대기
         PerkHandler->OnStatChanged.AddDynamic(this, &ADelveCharacter::HandleStatChanged);
+    }
+
+    if (APlayerController* PC = Cast<APlayerController>(Controller))
+    {
+        if (PC->PlayerCameraManager)
+        {
+            // (From: 1.0 검은색 -> To: 0.0 투명, Duration: 1.0초)
+            PC->PlayerCameraManager->StartCameraFade(1.0f, 0.0f, 1.0f, FLinearColor::Black, false, false);
+        }
     }
 }
 
