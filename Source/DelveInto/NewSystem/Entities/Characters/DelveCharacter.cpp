@@ -2,10 +2,13 @@
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Kismet/GameplayStatics.h" // [신규] 사운드 재생을 위해 필요
+#include "Blueprint/UserWidget.h"   // [신규] UI 생성을 위해 필요
 
 // [신규 시스템 헤더들]
+#include "Components/AudioComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/CharacterMovementComponent.h" // [신규] 캐릭터 무브먼트 컴포넌트 제어용
+#include "GameFramework/CharacterMovementComponent.h" 
 #include "NewSystem/Widgets/HandDisplayWidget.h"
 #include "NewSystem/Widgets/HealthBarWidget.h"
 #include "Handlers/CombatHandler.h"
@@ -39,6 +42,15 @@ void ADelveCharacter::BeginPlay()
 
     if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
     {
+        // ==========================================================
+        // [핵심 추가] 재시작 시 조작 권한을 게임으로 완벽하게 되돌려줍니다!
+        // ==========================================================
+        FInputModeGameOnly GameOnlyMode;
+        PlayerController->SetInputMode(GameOnlyMode);
+        PlayerController->bShowMouseCursor = false;
+        EnableInput(PlayerController); // 조작 차단 해제
+
+        // Enhanced Input 맵핑
         if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
         {
             Subsystem->AddMappingContext(DefaultMappingContext, 0);
@@ -51,7 +63,7 @@ void ADelveCharacter::BeginPlay()
         HealthHandler->OnDeath.AddDynamic(this, &ADelveCharacter::HandleDeath);
     }
 
-    // UI 생성 (기존 로직 유지)
+    // UI 생성 
     if (WeaponWidgetClass)
     {
         WeaponWidgetInstance = CreateWidget<UHandDisplayWidget>(GetWorld(), WeaponWidgetClass);
@@ -69,56 +81,41 @@ void ADelveCharacter::BeginPlay()
         }
     }
 
-    // ==========================================================
-    // [신규] 스탯 연동 로직 (흐르는 바람 퍽 연동)
-    // ==========================================================
+    // 스탯 연동 로직
     if (GetCharacterMovement())
     {
-        // 1. 초기 걷기 속도 저장 (언리얼 기본값은 보통 600.0f)
         BaseWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
     }
 
     if (PerkHandler)
     {
-        // 2. 퍽 핸들러에서 발생하는 스탯 변경 이벤트 수신 대기
         PerkHandler->OnStatChanged.AddDynamic(this, &ADelveCharacter::HandleStatChanged);
     }
 
+    // 카메라 페이드 인
     if (APlayerController* PC = Cast<APlayerController>(Controller))
     {
         if (PC->PlayerCameraManager)
         {
-            // (From: 1.0 검은색 -> To: 0.0 투명, Duration: 1.0초)
             PC->PlayerCameraManager->StartCameraFade(1.0f, 0.0f, 1.0f, FLinearColor::Black, false, false);
         }
     }
 }
 
-// -------------------------------------------------------------
-// [신규] 스탯 변경 이벤트 처리
-// -------------------------------------------------------------
 void ADelveCharacter::HandleStatChanged(EStatCategory StatType, float DeltaValue)
 {
-    // 스탯 종류가 '이동 속도(MovementSpeed)' 일 때
     if (StatType == EStatCategory::MovementSpeed)
     {
-        // DeltaValue에 0.1(10%), 0.2(20%) 등이 들어오며, 이를 배율에 더해줍니다.
         CurrentMoveSpeedMultiplier += DeltaValue;
 
         if (GetCharacterMovement())
         {
-            // (기본 속도) * (1.0 + 증가치) 로 최종 속도 적용
             GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed * CurrentMoveSpeedMultiplier;
-            
-            UE_LOG(LogTemp, Warning, TEXT(">> [캐릭터 스탯 적용] 이동 속도 배율: %f | 최종 속도: %f"), 
-                CurrentMoveSpeedMultiplier, GetCharacterMovement()->MaxWalkSpeed);
+            UE_LOG(LogTemp, Warning, TEXT(">> [캐릭터 스탯 적용] 이동 속도 배율: %f | 최종 속도: %f"), CurrentMoveSpeedMultiplier, GetCharacterMovement()->MaxWalkSpeed);
         }
     }
 }
 
-// -------------------------------------------------------------
-// [신규] 퍽 시스템: 레벨업 시 UI 띄우기
-// -------------------------------------------------------------
 void ADelveCharacter::TriggerLevelUp()
 {
     if (!PerkSelectionWidgetClass)
@@ -140,9 +137,6 @@ void ADelveCharacter::DebugLevelUp()
     TriggerLevelUp();
 }
 
-// -------------------------------------------------------------
-// 이하 기존 로직 유지
-// -------------------------------------------------------------
 void ADelveCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -243,13 +237,76 @@ void ADelveCharacter::HandleDamaged(float InMaxHealth, float InCurrentHealth)
     }
 }
 
+
 void ADelveCharacter::HandleDeath(ACharacter* DeadCharacter)
 {
     UE_LOG(LogTemp, Error, TEXT("Player Died!"));
 
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (PC)
     {
+        // 1. 캐릭터 조작 완전 차단
         DisableInput(PC);
+
+        // 2. 걷던 관성 정지
+        if (UCharacterMovementComponent* MovementComp = FindComponentByClass<UCharacterMovementComponent>())
+        {
+            MovementComp->Velocity = FVector::ZeroVector;
+        }
+
+        // ==========================================================
+        // [신규] 3. 맵에 있는 모든 적(나를 제외한 캐릭터) 즉사시키기!
+        // ==========================================================
+        TArray<AActor*> FoundActors;
+        // 맵에 있는 모든 'ACharacter'를 찾아서 배열에 담습니다.
+        UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACharacter::StaticClass(), FoundActors);
+
+        for (AActor* Actor : FoundActors)
+        {
+            ACharacter* OtherChar = Cast<ACharacter>(Actor);
+            
+            // 찾은 캐릭터가 유효하고, '나 자신(플레이어)'이 아니라면? (즉, 몬스터라면)
+            if (OtherChar && OtherChar != this)
+            {
+                // 99999의 절명 데미지를 가하여 적의 HealthHandler가 사망 처리를 하도록 유도합니다.
+                UGameplayStatics::ApplyDamage(OtherChar, 99999.0f, PC, this, nullptr);
+            }
+        }
+
+        // 4. 기존에 재생 중이던 모든 배경음/효과음 강제 종료!
+        for (TObjectIterator<UAudioComponent> It; It; ++It)
+        {
+            if (It->GetWorld() == GetWorld() && It->IsPlaying())
+            {
+                It->Stop();
+            }
+        }
+
+        // 5. 사망 사운드 및 전용 BGM 재생
+        if (PlayerDeadSound)
+        {
+            UGameplayStatics::PlaySound2D(this, PlayerDeadSound);
+        }
+        if (PlayerDeadBGMSound)
+        {
+            UGameplayStatics::PlaySound2D(this, PlayerDeadBGMSound);
+        }
+
+        // 6. 게임 오버 UI 띄우기 (스페이스바 포커스 포함)
+        if (GameOverWidgetClass)
+        {
+            UUserWidget* GameOverWidget = CreateWidget<UUserWidget>(PC, GameOverWidgetClass);
+            if (GameOverWidget)
+            {
+                GameOverWidget->AddToViewport();
+                GameOverWidget->SetKeyboardFocus(); // 스페이스바 인식용 포커스
+
+                FInputModeUIOnly InputMode;
+                InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
+                PC->SetInputMode(InputMode);
+                PC->bShowMouseCursor = true;
+            }
+        }
     }
 }
 

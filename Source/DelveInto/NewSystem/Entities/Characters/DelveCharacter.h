@@ -62,6 +62,18 @@ public:
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UPerkSelectionWidget> PerkSelectionWidgetClass;
 
+    // [신규] 게임 오버 UI 클래스
+    UPROPERTY(EditAnywhere, Category = "UI")
+    TSubclassOf<class UUserWidget> GameOverWidgetClass;
+
+    // --- 오디오 (사망 효과음 및 BGM) ---
+    // [신규] 사망 시 재생할 사운드들
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    USoundBase* PlayerDeadSound;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    USoundBase* PlayerDeadBGMSound;
+
     // --- 진행(Progression) 로직 ---
     UFUNCTION(BlueprintCallable, Category = "Progression")
     void TriggerLevelUp();
