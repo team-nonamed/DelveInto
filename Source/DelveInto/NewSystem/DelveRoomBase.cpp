@@ -63,6 +63,6 @@ void ADelveRoomBase::UnlockDoors()
 {
 	for (ADelveDoor* Door : SpawnedDoors)
 	{
-		if(Door) Door->UnlockAndOpen();
+		if(Door) Door->UnlockAndOpen(true);
 	}
 }

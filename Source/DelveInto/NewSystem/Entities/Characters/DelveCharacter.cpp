@@ -2,21 +2,20 @@
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "Kismet/GameplayStatics.h" // [신규] 사운드 재생을 위해 필요
-#include "Blueprint/UserWidget.h"   // [신규] UI 생성을 위해 필요
-
-// [신규 시스템 헤더들]
+#include "Kismet/GameplayStatics.h" 
+#include "Blueprint/UserWidget.h"   
 #include "Components/AudioComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h" 
 #include "NewSystem/Widgets/HandDisplayWidget.h"
 #include "NewSystem/Widgets/HealthBarWidget.h"
-#include "Handlers/CombatHandler.h"
-#include "Handlers/HealthHandler.h"
-#include "Handlers/InventoryHandler.h" 
+#include "NewSystem/Entities/Characters/Handlers/CombatHandler.h"
+#include "NewSystem/Entities/Characters/Handlers/HealthHandler.h"
+#include "NewSystem/Entities/Characters/Handlers/InventoryHandler.h" 
 #include "NewSystem/Entities/Characters/Handlers/PerkHandler.h"
 #include "NewSystem/Interfaces/Interactable.h"
 #include "NewSystem/Widgets/Perks/PerkSelectionWidget.h"
+#include "UObject/UObjectIterator.h"
 
 ADelveCharacter::ADelveCharacter()
 {
@@ -32,7 +31,6 @@ ADelveCharacter::ADelveCharacter()
     CombatHandler = CreateDefaultSubobject<UCombatHandler>(TEXT("CombatHandler"));
     HealthHandler = CreateDefaultSubobject<UHealthHandler>(TEXT("HealthHandler"));
     InventoryHandler = CreateDefaultSubobject<UInventoryHandler>(TEXT("InventoryHandler"));
-    
     PerkHandler = CreateDefaultSubobject<UPerkHandler>(TEXT("PerkHandler"));
 }
 
@@ -40,20 +38,29 @@ void ADelveCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
+    if (GetWorld()->GetMapName().Contains("DemoDungeon"))
+    {
+        InventoryHandler->AddItem(PotionData, 3);
+    }
+
     if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
     {
-        // ==========================================================
-        // [핵심 추가] 재시작 시 조작 권한을 게임으로 완벽하게 되돌려줍니다!
-        // ==========================================================
+        // 재시작 시 조작 권한을 게임으로 완벽하게 되돌려줍니다.
         FInputModeGameOnly GameOnlyMode;
         PlayerController->SetInputMode(GameOnlyMode);
         PlayerController->bShowMouseCursor = false;
-        EnableInput(PlayerController); // 조작 차단 해제
+        EnableInput(PlayerController); 
 
         // Enhanced Input 맵핑
         if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
         {
             Subsystem->AddMappingContext(DefaultMappingContext, 0);
+        }
+        
+        // 카메라 페이드 인
+        if (PlayerController->PlayerCameraManager)
+        {
+            PlayerController->PlayerCameraManager->StartCameraFade(1.0f, 0.0f, 1.0f, FLinearColor::Black, false, false);
         }
     }
 
@@ -70,7 +77,7 @@ void ADelveCharacter::BeginPlay()
         if (WeaponWidgetInstance)
         {
             WeaponWidgetInstance->AddToViewport();
-            WeaponWidgetInstance->InitializeUI(InventoryHandler);
+            WeaponWidgetInstance->InitializeUI(InventoryHandler, CombatHandler);
             
             if (HealthHandler && WeaponWidgetInstance->HealthBar)
             {
@@ -90,15 +97,6 @@ void ADelveCharacter::BeginPlay()
     if (PerkHandler)
     {
         PerkHandler->OnStatChanged.AddDynamic(this, &ADelveCharacter::HandleStatChanged);
-    }
-
-    // 카메라 페이드 인
-    if (APlayerController* PC = Cast<APlayerController>(Controller))
-    {
-        if (PC->PlayerCameraManager)
-        {
-            PC->PlayerCameraManager->StartCameraFade(1.0f, 0.0f, 1.0f, FLinearColor::Black, false, false);
-        }
     }
 }
 
@@ -124,6 +122,11 @@ void ADelveCharacter::TriggerLevelUp()
         return;
     }
 
+    if (PerkSound)
+    {
+        UGameplayStatics::PlaySound2D(this, PerkSound);
+    }
+    
     UPerkSelectionWidget* SelectionUI = CreateWidget<UPerkSelectionWidget>(GetWorld(), PerkSelectionWidgetClass);
     if (SelectionUI)
     {
@@ -164,6 +167,8 @@ void ADelveCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
         EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Completed, this, &ADelveCharacter::Input_DashReleased);
 
         EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_InteractPressed);
+
+        EnhancedInputComponent->BindAction(OneAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_PotionPressed);
     }
 }
 
@@ -231,12 +236,30 @@ float ADelveCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damage
 
 void ADelveCharacter::HandleDamaged(float InMaxHealth, float InCurrentHealth)
 {
+    // 1. 체력바 UI 업데이트
     if (WeaponWidgetInstance && WeaponWidgetInstance->HealthBar)
     {
         WeaponWidgetInstance->HealthBar->UpdateHealthRatio(InCurrentHealth / InMaxHealth);
     }
-}
 
+    if (HealthHandler && HealthHandler->bIsDead) return;
+
+    // 2. 피격 사운드 랜덤 재생 (Sound Pool)
+    if (HitSoundPool.Num() > 0)
+    {
+        int32 RandomIndex = FMath::RandRange(0, HitSoundPool.Num() - 1);
+        if (HitSoundPool[RandomIndex])
+        {
+            UGameplayStatics::PlaySoundAtLocation(this, HitSoundPool[RandomIndex], GetActorLocation());
+        }
+    }
+
+    // 3. 무기 UI 위에 덮어씌운 피격 이펙트 위젯 재생!
+    if (HitFlipbook && WeaponWidgetInstance)
+    {
+        WeaponWidgetInstance->PlayHitEffect(HitFlipbook);
+    }
+}
 
 void ADelveCharacter::HandleDeath(ACharacter* DeadCharacter)
 {
@@ -254,18 +277,15 @@ void ADelveCharacter::HandleDeath(ACharacter* DeadCharacter)
             MovementComp->Velocity = FVector::ZeroVector;
         }
 
-        // ==========================================================
-        // [신규] 3. 맵에 있는 모든 적(나를 제외한 캐릭터) 즉사시키기!
-        // ==========================================================
+        // 3. 맵에 있는 모든 적(나를 제외한 캐릭터) 즉사시키기!
         TArray<AActor*> FoundActors;
-        // 맵에 있는 모든 'ACharacter'를 찾아서 배열에 담습니다.
         UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACharacter::StaticClass(), FoundActors);
 
         for (AActor* Actor : FoundActors)
         {
             ACharacter* OtherChar = Cast<ACharacter>(Actor);
             
-            // 찾은 캐릭터가 유효하고, '나 자신(플레이어)'이 아니라면? (즉, 몬스터라면)
+            // 찾은 캐릭터가 유효하고, '나 자신(플레이어)'이 아니라면
             if (OtherChar && OtherChar != this)
             {
                 // 99999의 절명 데미지를 가하여 적의 HealthHandler가 사망 처리를 하도록 유도합니다.
@@ -323,7 +343,8 @@ void ADelveCharacter::Input_InteractPressed()
 
     bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartLoc, EndLoc, ECC_Visibility, CollisionParams);
 
-    DrawDebugLine(GetWorld(), StartLoc, EndLoc, FColor::Red, false, 2.0f, 0, 1.0f);
+    //
+    //DrawDebugLine(GetWorld(), StartLoc, EndLoc, FColor::Red, false, 2.0f, 0, 1.0f);
 
     if (bHit && HitResult.GetActor())
     {
@@ -333,5 +354,14 @@ void ADelveCharacter::Input_InteractPressed()
             IInteractable::Execute_Interact(HitActor, this);
             UE_LOG(LogTemp, Display, TEXT("%s와 상호작용 성공!"), *HitActor->GetName());
         }
+    }
+}
+
+void ADelveCharacter::Input_PotionPressed()
+{
+    if (CombatHandler) 
+    {
+        // EWeaponSkillSlot::Potion 슬롯에 할당된 스킬을 실행!
+        CombatHandler->HandleInput(EWeaponSkillSlot::One, true); 
     }
 }

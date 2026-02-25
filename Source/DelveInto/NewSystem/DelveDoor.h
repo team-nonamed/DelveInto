@@ -42,7 +42,7 @@ public:
 
 	// 문을 열고 통과 가능하게 함 (전투 종료 시)
 	UFUNCTION(BlueprintCallable, Category = "Door")
-	void UnlockAndOpen();
+	void UnlockAndOpen(bool Sound);
     
 	// (선택) 문이 열릴 때/닫힐 때 재생할 소리
 	UPROPERTY(EditAnywhere, Category = "Audio")
@@ -54,7 +54,7 @@ public:
 	// [핵심] C++에서는 선언만! 구현은 BP에서!
 	// BlueprintCallable을 붙이면 다른 블루프린트에서도 호출 가능합니다.
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Door")
-	void OpenDoor();
+	void OpenDoor(bool Sound);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Door")
 	void CloseDoor();

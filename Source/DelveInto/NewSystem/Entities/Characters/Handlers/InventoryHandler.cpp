@@ -180,3 +180,31 @@ bool UInventoryHandler::ConsumeItemAtSlot(int32 SlotIndex, int32 ConsumeAmount)
 
     return true;
 }
+
+bool UInventoryHandler::ConsumeItem(UItemData* ItemToConsume, int32 Amount)
+{
+    if (!ItemToConsume || Amount <= 0) return false;
+
+    // 예시: 인벤토리 슬롯 배열(InventorySlots)을 돌면서 해당 아이템을 찾음
+    for (auto& Slot : Slots) // (InventorySlots는 프로젝트의 실제 배열 이름으로 변경)
+    {
+        if (Slot.ItemData == ItemToConsume && Slot.Amount >= Amount)
+        {
+            // 아이템 개수 차감
+            Slot.Amount -= Amount;
+
+            // 만약 다 썼다면 슬롯 비우기
+            if (Slot.Amount == 0)
+            {
+                Slot.ItemData = nullptr;
+            }
+
+            // (선택) UI 업데이트 델리게이트 호출
+            // OnInventoryUpdated.Broadcast();
+
+            return true; // 성공적으로 마심!
+        }
+    }
+
+    return false; // 포션이 없거나 개수가 부족함
+}

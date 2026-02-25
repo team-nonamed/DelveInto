@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "NewSystem/Items/ItemData.h"
 #include "DelveCharacter.generated.h"
 
 class UInputMappingContext;
@@ -14,8 +15,8 @@ class UInventoryHandler;
 class UHandDisplayWidget;
 class UPerkHandler;
 class UPerkSelectionWidget;
+class UPaperFlipbook;
 
-// [신규] EStatCategory 전방 선언 (PerkHandler.h에 정의되어 있다고 가정)
 enum class EStatCategory : uint8;
 
 UCLASS(Abstract, Blueprintable)
@@ -32,8 +33,6 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-    // --- 데미지 처리 ---
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
     // --- 컴포넌트 ---
@@ -52,6 +51,9 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UPerkHandler* PerkHandler;
 
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+    UItemData* PotionData;
+
     // --- UI ---
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UHandDisplayWidget> WeaponWidgetClass; 
@@ -62,17 +64,21 @@ public:
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<UPerkSelectionWidget> PerkSelectionWidgetClass;
 
-    // [신규] 게임 오버 UI 클래스
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<class UUserWidget> GameOverWidgetClass;
 
-    // --- 오디오 (사망 효과음 및 BGM) ---
-    // [신규] 사망 시 재생할 사운드들
+    // --- 오디오 및 애니메이션 ---
     UPROPERTY(EditAnywhere, Category = "Audio")
     USoundBase* PlayerDeadSound;
 
     UPROPERTY(EditAnywhere, Category = "Audio")
     USoundBase* PlayerDeadBGMSound;
+
+    UPROPERTY(EditAnywhere, Category = "Audio")
+    TArray<USoundBase*> HitSoundPool; 
+
+    UPROPERTY(EditAnywhere, Category = "Animation")
+    UPaperFlipbook* HitFlipbook; 
 
     // --- 진행(Progression) 로직 ---
     UFUNCTION(BlueprintCallable, Category = "Progression")
@@ -89,7 +95,6 @@ public:
     UInputAction* MoveAction;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* LookAction;
-    
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* PrimaryAction;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
@@ -104,11 +109,10 @@ public:
     UInputAction* DashAction;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* InteractAction;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    UInputAction* OneAction;
 
 protected:
-    // ==========================================================
-    // [신규] 스탯 관리 (흐르는 바람 등)
-    // ==========================================================
     UFUNCTION()
     void HandleStatChanged(EStatCategory StatType, float DeltaValue);
 
@@ -118,38 +122,33 @@ protected:
     UPROPERTY()
     float CurrentMoveSpeedMultiplier = 1.0f;
 
+    UPROPERTY(EditDefaultsOnly, Category = "Interaction")
+    float InteractRange = 300.0f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Interaction")
+    USoundBase* PerkSound;
+
 private:
-    // --- 입력 콜백 함수들 ---
     void Move(const FInputActionValue& Value);
     void Look(const FInputActionValue& Value);
     
     void Input_PrimaryPressed();
     void Input_PrimaryReleased();
-    
     void Input_SecondaryPressed();
     void Input_SecondaryReleased();
-    
     void Input_SkillQPressed();
     void Input_SkillQReleased();
-    
     void Input_SkillEPressed();
     void Input_SkillEReleased();
-
     void Input_JumpPressed();
-
     void Input_DashPressed();
     void Input_DashReleased();
-
-    // --- HealthHandler 이벤트 수신용 함수들 ---
+    void Input_InteractPressed();
+    void Input_PotionPressed();
+    
     UFUNCTION()
     void HandleDamaged(float InMaxHealth, float InCurrentHealth);
 
     UFUNCTION()
     void HandleDeath(ACharacter* DeadCharacter);
-
-    // --- 상호작용 ---
-    void Input_InteractPressed();
-    
-    UPROPERTY(EditDefaultsOnly, Category = "Interaction")
-    float InteractRange = 300.0f;
 };

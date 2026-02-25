@@ -8,8 +8,8 @@
 class UShopWidget;
 class UBoxComponent;
 class USceneComponent;
-class UFacingSpriteComponent; // [수정] FacingSprite 전방 선언
-class UPaperSprite;           // [수정] Sprite 전방 선언
+class UFacingSpriteComponent; 
+class UPaperSprite;           
 
 UCLASS()
 class DELVEINTO_API AShopNPC : public AActor, public IInteractable
@@ -27,12 +27,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UBoxComponent* InteractCollision;
 
-	// [수정] FacingFlipbook 대신 FacingSprite 사용
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UFacingSpriteComponent* NPCVisual;
 
 	// --- 데이터 ---
-	// [수정] Flipbook 대신 Sprite 데이터 사용
 	UPROPERTY(EditAnywhere, Category = "Shop|Visual")
 	UPaperSprite* IdleSprite;
 

@@ -9,5 +9,6 @@ enum class EWeaponSkillSlot : uint8
 	SkillE,
 	Jump,
 	Dash,
-	Null
+	Null,
+	One,
 };

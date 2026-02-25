@@ -18,16 +18,21 @@ public:
 	void SetBuyer(ADelveCharacter* Player);
 
 protected:
+	// ==========================================================
+	// [신규] 키보드 입력을 감지하는 함수 (스페이스바, ESC 처리용)
+	// ==========================================================
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Shop")
 	ADelveCharacter* BuyerCharacter;
 
-	// [신규] 판매할 포션의 원본 데이터 (블루프린트에서 설정!)
+	// 판매할 포션의 원본 데이터 (블루프린트에서 설정!)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop")
 	UItemData* PotionItemData;
 
 	// 포션 가격
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shop")
-	int32 PotionPrice = 50; 
+	int32 PotionPrice = 300; 
 
 	// UMG(블루프린트) 버튼 클릭 시 호출할 C++ 함수
 	UFUNCTION(BlueprintCallable, Category = "Shop")

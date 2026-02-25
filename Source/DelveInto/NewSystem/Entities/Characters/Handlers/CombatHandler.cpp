@@ -234,9 +234,19 @@ bool UCombatHandler::EquipWeapon(UWeaponData* NewWeaponData)
        }
     }
 
-    HandleSkillDeactivation(nullptr);
+   HandleSkillDeactivation(nullptr);
 
-    return true;
+   // [신규] UI 갱신을 위해 현재 세팅된 스킬 맵을 브로드캐스트
+   // TMap<EWeaponSkillSlot, TObjectPtr<USkillBase>> 인 Skills를 전달
+   TMap<EWeaponSkillSlot, USkillBase*> RawSkills;
+   for (const auto& Pair : Skills)
+   {
+      RawSkills.Add(Pair.Key, Pair.Value.Get());
+   }
+    
+   OnWeaponEquipped.Broadcast();
+
+   return true;
 }
 
 void UCombatHandler::Initialize(UHandDisplayWidget* InDisplayWidget)
@@ -354,4 +364,16 @@ void UCombatHandler::HandleSkillHit(USkillBase* InstigatorSkill, AActor* Victim,
    {
       PerkHandler->OnHitTarget.Broadcast(GetOwner(), Victim, FinalDamage, ActivatedSlot);
    }
+}
+
+// CombatHandler.cpp 내부
+TMap<EWeaponSkillSlot, USkillBase*> UCombatHandler::GetEquippedSkills() const
+{
+   TMap<EWeaponSkillSlot, USkillBase*> Result;
+   for (const auto& Pair : Skills)
+   {
+      // TObjectPtr에서 원시 포인터를 추출하여 반환
+      Result.Add(Pair.Key, Pair.Value.Get());
+   }
+   return Result;
 }

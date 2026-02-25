@@ -98,6 +98,15 @@ bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType, bool bUseFurthest)
     // 1. 주변에 빈자리가 있고, 그 빈자리의 이웃이 딱 1개(막다른 길)인 곳 탐색
     for (const auto& Elem : RoomDataMap)
     {
+        // =============================================================
+        // [핵심 수정] 보스 방이나 NPC 방을 '징검다리'로 삼지 않도록 차단!
+        // 오직 일반 방(Normal)이나 시작 방(Start) 옆에만 특수 방이 붙을 수 있습니다.
+        // =============================================================
+        if (Elem.Value.Type == ERoomType::Boss || Elem.Value.Type == ERoomType::NPC)
+        {
+            continue;
+        }
+
         FIntPoint Coord = Elem.Key;
         
         FIntPoint Neighbors[4] = {
@@ -109,6 +118,8 @@ bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType, bool bUseFurthest)
 
         for (FIntPoint NeighborCoord : Neighbors)
         {
+            // 이 빈 자리(NeighborCoord)의 이웃이 딱 1개라는 뜻은,
+            // 방금 걸러내고 남은 '일반 방'만이 유일한 이웃이라는 뜻이 보장됩니다.
             if (!RoomDataMap.Contains(NeighborCoord) && GetNeighborCount(NeighborCoord) == 1)
             {
                 PotentialSpots.AddUnique(NeighborCoord);
@@ -123,35 +134,28 @@ bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType, bool bUseFurthest)
 
         if (bUseFurthest)
         {
-            // [핵심] (0,0)과의 거리가 가장 먼 좌표를 찾습니다.
-            float MaxDistanceSq = -1.0f; // 최대 거리 저장용
-            
+            float MaxDistanceSq = -1.0f; 
             for (int32 i = 0; i < PotentialSpots.Num(); ++i)
             {
                 FIntPoint Spot = PotentialSpots[i];
-                
-                // 유클리드 거리의 제곱 (X^2 + Y^2) 계산. 시작점이 0,0이므로 이렇게만 계산해도 됩니다.
                 float DistSq = FMath::Square((float)Spot.X) + FMath::Square((float)Spot.Y);
                 
                 if (DistSq > MaxDistanceSq)
                 {
                     MaxDistanceSq = DistSq;
-                    SelectedIndex = i; // 가장 먼 곳의 인덱스로 갱신
+                    SelectedIndex = i; 
                 }
             }
         }
         else
         {
-            // 일반적인 경우(NPC 방 등)에는 랜덤으로 선택
             SelectedIndex = FMath::RandRange(0, PotentialSpots.Num() - 1);
         }
 
-        // 최종 선택된 좌표에 방 배치
         RoomDataMap.Add(PotentialSpots[SelectedIndex], FRoomData(PotentialSpots[SelectedIndex], RoomType));
         return true; 
     }
     
-    // 배치할 수 있는 빈 자리가 없음
     return false; 
 }
 
@@ -166,17 +170,10 @@ int32 ADungeonGenerator::GetNeighborCount(FIntPoint Coord)
     return Count;
 }
 
-// 2. 실제 방 액터 스폰
 void ADungeonGenerator::SpawnRooms()
 {
     SpawnedRoomMap.Empty();
-    
-    // 안전장치: 프리셋이 아예 비어있으면 중단
-    if (RoomPresets.Num() == 0)
-    {
-        UE_LOG(LogTemp, Error, TEXT("DungeonGenerator: No Room Presets assigned!"));
-        return;
-    }
+    if (RoomPresets.Num() == 0) return;
 
     FActorSpawnParameters SpawnParams;
     SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -184,97 +181,107 @@ void ADungeonGenerator::SpawnRooms()
     for (auto& Elem : RoomDataMap)
     {
         FIntPoint Coord = Elem.Key;
-        ERoomType Type = Elem.Value.Type; // 현재 좌표의 방 타입 (Start, Normal, Boss...)
-        
-        // 1. [핵심] 타입에 맞는 랜덤 방 클래스 가져오기
+        ERoomType Type = Elem.Value.Type;
         TSubclassOf<ARoomBase> SelectedClass = GetRandomRoomClass(Type);
 
-        if (!SelectedClass)
-        {
-            UE_LOG(LogTemp, Warning, TEXT("No class found for RoomType: %d"), (int32)Type);
-            continue;
-        }
+        if (!SelectedClass) continue;
 
-        // 2. 스폰
         FVector SpawnLocation(Coord.X * RoomGridSize, Coord.Y * RoomGridSize, 0.0f);
         FRotator SpawnRotation = FRotator::ZeroRotator;
 
-        ARoomBase* NewRoom = GetWorld()->SpawnActor<ARoomBase>(SelectedClass, SpawnLocation, SpawnRotation, SpawnParams);
-        
-        if (NewRoom)
+        // =============================================================
+        // [신규] 특수 방(Boss, NPC) 회전 계산 로직
+        // =============================================================
+        if (Type == ERoomType::Boss || Type == ERoomType::NPC)
         {
-            SpawnedRoomMap.Add(Coord, NewRoom);
-            
-            // 필요하다면 여기서 방 타입 정보를 방에게도 알려줌
-            // NewRoom->Type = Type; 
+            // 이 방과 연결된 유일한 이웃(부모) 찾기
+            FIntPoint Neighbors[4] = {
+                FIntPoint(Coord.X + 1, Coord.Y), FIntPoint(Coord.X - 1, Coord.Y),
+                FIntPoint(Coord.X, Coord.Y + 1), FIntPoint(Coord.X, Coord.Y - 1)
+            };
+
+            for (int32 i = 0; i < 4; i++)
+            {
+                if (RoomDataMap.Contains(Neighbors[i]))
+                {
+                    // 부모 방이 내 기준으로 어느 방향에 있는지 계산
+                    FIntPoint Diff = Neighbors[i] - Coord;
+                    
+                    if (Diff.X == 1)  SpawnRotation.Yaw = 0.0f;   // 부모가 앞(+X)에 있음
+                    if (Diff.X == -1) SpawnRotation.Yaw = 180.0f; // 부모가 뒤(-X)에 있음
+                    if (Diff.Y == 1)  SpawnRotation.Yaw = 90.0f;  // 부모가 우(+Y)에 있음
+                    if (Diff.Y == -1) SpawnRotation.Yaw = -90.0f; // 부모가 좌(-Y)에 있음
+                    break; 
+                }
+            }
         }
+
+        ARoomBase* NewRoom = GetWorld()->SpawnActor<ARoomBase>(SelectedClass, SpawnLocation, SpawnRotation, SpawnParams);
+        if (NewRoom) SpawnedRoomMap.Add(Coord, NewRoom);
     }
 }
 
-// 3. 문 스폰 및 포인터 연결 & 벽 허물기 (핵심 로직)
 void ADungeonGenerator::SpawnDoorsAndLink()
 {
     if (!DoorClass) return;
 
-    FActorSpawnParameters SpawnParams;
-    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-    // "Forward"와 "Right" 방향만 검사하여 중복 생성 방지
-    // (내 Forward는 앞집의 Backward와 같고, 내 Right는 옆집의 Left와 같음)
-    
     for (auto& Elem : SpawnedRoomMap)
     {
         FIntPoint MyCoord = Elem.Key;
         ARoomBase* MyRoom = Elem.Value;
 
-        // 검사할 방향 목록 (상, 우)
+        // 특수 방인지 확인 (RoomDataMap에서 타입 체크 필요하므로 아래처럼 접근)
+        ERoomType MyType = RoomDataMap[MyCoord].Type;
+        bool bIsSpecial = (MyType == ERoomType::Boss || MyType == ERoomType::NPC);
+
         ERoomDirection CheckDirs[] = { ERoomDirection::Forward, ERoomDirection::Right };
 
         for (ERoomDirection Dir : CheckDirs)
         {
-            // 1. 이웃 좌표 구하기
             FIntPoint NeighborCoord = GetNeighborCoordinate(MyCoord, Dir);
+            if (!SpawnedRoomMap.Contains(NeighborCoord)) continue;
 
-            // 2. 이웃 방이 존재하는지 확인
-            if (SpawnedRoomMap.Contains(NeighborCoord))
+            ARoomBase* NeighborRoom = SpawnedRoomMap[NeighborCoord];
+            ERoomType NeighborType = RoomDataMap[NeighborCoord].Type;
+
+            // =============================================================
+            // [핵심 로직] 특수 방 통로 제한
+            // =============================================================
+            
+            // 1. 내가 특수 방인데, 현재 검사하는 방향이 내 로컬 Forward(+X)가 아니면 문 안 만듦
+            if (bIsSpecial)
             {
-                ARoomBase* NeighborRoom = SpawnedRoomMap[NeighborCoord];
+                // 월드 좌표계의 Dir가 내 로컬 Forward인지 확인
+                FVector WorldDirVec = FVector(NeighborCoord.X - MyCoord.X, NeighborCoord.Y - MyCoord.Y, 0.0f);
+                FVector LocalForwardVec = MyRoom->GetActorForwardVector();
+                
+                if (!WorldDirVec.GetSafeNormal().Equals(LocalForwardVec, 0.1f)) continue;
+            }
 
-                // 3. 문 스폰 위치 계산 (두 방의 중간 지점)
-                FVector MyLoc = MyRoom->GetActorLocation();
-                FVector NeighborLoc = NeighborRoom->GetActorLocation();
-                FVector DoorLoc = (MyLoc + NeighborLoc) * 0.5f;
+            // 2. 이웃이 특수 방인데, 그 방의 로컬 Forward가 나를 향하고 있지 않으면 문 안 만듦
+            if (NeighborType == ERoomType::Boss || NeighborType == ERoomType::NPC)
+            {
+                FVector WorldToMeVec = FVector(MyCoord.X - NeighborCoord.X, MyCoord.Y - NeighborCoord.Y, 0.0f);
+                FVector NeighborForwardVec = NeighborRoom->GetActorForwardVector();
 
-                // 4. 문 회전 계산
-                // Forward(X축 연결) -> 문 회전 0 (또는 90, 메쉬에 따라 다름)
-                // Right(Y축 연결) -> 문 회전 90
-                FRotator DoorRot = FRotator::ZeroRotator;
-                if (Dir == ERoomDirection::Right) 
-                {
-                    DoorRot.Yaw = 90.0f; 
-                }
+                if (!WorldToMeVec.GetSafeNormal().Equals(NeighborForwardVec, 0.1f)) continue;
+            }
 
-                // 5. 문 스폰
-                ADelveDoor* NewDoor = GetWorld()->SpawnActor<ADelveDoor>(DoorClass, DoorLoc, DoorRot, SpawnParams);
+            // --- 이하 문 스폰 및 연결 로직 동일 ---
+            FVector DoorLoc = (MyRoom->GetActorLocation() + NeighborRoom->GetActorLocation()) * 0.5f;
+            FRotator DoorRot = (Dir == ERoomDirection::Right) ? FRotator(0, 90, 0) : FRotator::ZeroRotator;
 
-                if (NewDoor)
-                {
-                    // 6. [연결] 양쪽 방에 문 포인터 등록
-                    
-                    // A. 내 방(MyRoom) 처리
-                    MyRoom->Doors.Add(Dir, NewDoor);     // 문 등록
-                    MyRoom->OpenWall(Dir);               // [핵심] 해당 방향 벽 허물기
+            ADelveDoor* NewDoor = GetWorld()->SpawnActor<ADelveDoor>(DoorClass, DoorLoc, DoorRot);
+            if (NewDoor)
+            {
+                // MyRoom 입장
+                MyRoom->Doors.Add(Dir, NewDoor);
+                MyRoom->OpenWall(Dir);
 
-                    // B. 이웃 방(NeighborRoom) 처리
-                    ERoomDirection OpDir = GetOppositeDirection(Dir); // 반대 방향 (예: Backward)
-                    NeighborRoom->Doors.Add(OpDir, NewDoor); // 문 등록
-                    NeighborRoom->OpenWall(OpDir);           // [핵심] 반대 방향 벽 허물기
-                    
-                    // 디버그 로그 (필요시 주석 해제)
-                    // UE_LOG(LogTemp, Log, TEXT("Linked Room[%d,%d]-(%s) <-> Room[%d,%d]-(%s)"), 
-                    //     MyCoord.X, MyCoord.Y, *UEnum::GetValueAsString(Dir),
-                    //     NeighborCoord.X, NeighborCoord.Y, *UEnum::GetValueAsString(OpDir));
-                }
+                // NeighborRoom 입장
+                ERoomDirection OpDir = GetOppositeDirection(Dir);
+                NeighborRoom->Doors.Add(OpDir, NewDoor);
+                NeighborRoom->OpenWall(OpDir);
             }
         }
     }

@@ -14,11 +14,11 @@ struct DELVEINTO_API FInventorySlot
 	GENERATED_BODY()
 
 	// 이 슬롯에 들어있는 아이템 데이터 (비어있으면 nullptr)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	UItemData* ItemData = nullptr;
 
 	// 현재 슬롯에 들어있는 개수
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory")
 	int32 Amount = 0;
 
 	// 슬롯이 비어있는지 확인하는 헬퍼 함수

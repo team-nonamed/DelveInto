@@ -5,7 +5,9 @@
 
 #include "Components/ArrowComponent.h"
 #include "Components/BoxComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "NewSystem/DelveDoor.h"
+#include "NewSystem/Entities/Characters/DelveCharacter.h"
 
 
 // Sets default values
@@ -199,10 +201,13 @@ bool ARoomBase::CheckRoomClear_Implementation()
 		{
 			if (Pairs.Value)
 			{
-				Pairs.Value->OpenDoor();
+				
+				
+				Pairs.Value->OpenDoor(true);
 			}
 		}
 
+		Cast<ADelveCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->TriggerLevelUp();
 		return true;
 	}
 
@@ -267,23 +272,34 @@ void ARoomBase::HandleEnemyDeath_Implementation(ADelveEnemy* DeadEnemy)
 
 void ARoomBase::OpenWall(ERoomDirection Direction)
 {
-	// 해당 방향의 벽을 안 보이게 숨기고, 충돌도 끕니다.
+	// Direction은 Generator가 계산한 '월드 기준 방향'입니다.
+	// 방이 회전되어 있으므로, 월드 방향을 로컬 방향으로 변환해야 합니다.
+    
 	UStaticMeshComponent* TargetWall = nullptr;
 
+	// 월드 방향 벡터 구하기
+	FVector WorldDir = FVector::ZeroVector;
 	switch (Direction)
 	{
-	case ERoomDirection::Forward:  TargetWall = WallForward; break;
-	case ERoomDirection::Backward: TargetWall = WallBackward; break;
-	case ERoomDirection::Right:    TargetWall = WallRight; break;
-	case ERoomDirection::Left:     TargetWall = WallLeft; break;
+	case ERoomDirection::Forward:  WorldDir = FVector(1, 0, 0); break;
+	case ERoomDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
+	case ERoomDirection::Right:    WorldDir = FVector(0, 1, 0); break;
+	case ERoomDirection::Left:     WorldDir = FVector(0, -1, 0); break;
 	}
+
+	// 월드 방향을 내 로컬 공간으로 역변환 (InverseTransformVector)
+	FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(WorldDir);
+
+	// 로컬 방향에 따른 벽 선택 (오차 허용 0.1)
+	if (LocalDir.X > 0.5f)  TargetWall = WallForward;
+	else if (LocalDir.X < -0.5f) TargetWall = WallBackward;
+	else if (LocalDir.Y > 0.5f)  TargetWall = WallRight;
+	else if (LocalDir.Y < -0.5f) TargetWall = WallLeft;
 
 	if (TargetWall)
 	{
 		TargetWall->SetHiddenInGame(true);
 		TargetWall->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-        
-		// 에디터에서도 안 보이게 하려면
 		TargetWall->SetVisibility(false); 
 	}
 }

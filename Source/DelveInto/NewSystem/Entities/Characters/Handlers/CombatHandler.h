@@ -10,6 +10,9 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCombatHandler, Log, All);
 
+// [신규] 무기 장착 완료(스킬 세팅 완료)를 알리는 델리게이트
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWeaponEquippedSignature);
+
 class UPerkHandler; // 퍽 핸들러 전방 선언
 
 UCLASS(ClassGroup=(Handler), meta=(BlueprintSpawnableComponent))
@@ -21,6 +24,12 @@ class DELVEINTO_API UCombatHandler : public UActorComponent
 public:
     UCombatHandler();
 
+    // [신규] 외부(UI 등)에서 바인딩할 이벤트
+    UPROPERTY(BlueprintAssignable, Category = "Combat|Events")
+    FOnWeaponEquippedSignature OnWeaponEquipped;
+    
+    UFUNCTION(BlueprintCallable, Category = "Combat|Skills")
+    TMap<EWeaponSkillSlot, USkillBase*> GetEquippedSkills() const;
 protected:
     virtual void BeginPlay() override;
 #pragma endregion
@@ -51,6 +60,8 @@ protected:
     // [신규] 퍽 시스템 연동을 위한 핸들러 캐싱
     UPROPERTY(VisibleInstanceOnly, Category = "Runtime")
     TObjectPtr<UPerkHandler> PerkHandler;
+
+    
 #pragma endregion
 
 #pragma region Event Handlers

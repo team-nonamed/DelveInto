@@ -22,9 +22,9 @@ bool UCombatUtil::ApplyDamageSphere(const UObject* WorldContextObject, AActor* I
                     (Instigator->GetActorForwardVector() * OriginOffset.X) + 
                     (Instigator->GetActorRightVector() * OriginOffset.Y) + 
                     (Instigator->GetActorUpVector() * OriginOffset.Z);
-    
+#if WITH_EDITOR    
     DrawDebugSphere(World, Start, Radius, 12, FColor::Red, false, 1.0f);
-
+#endif
     TArray<AActor*> OverlappedActors;
     TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
     ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
@@ -76,13 +76,15 @@ bool UCombatUtil::ApplyDamageFanShape(const UObject* WorldContextObject, AActor*
 
     FVector Origin = Instigator->GetActorLocation();
     FVector Forward = Instigator->GetActorForwardVector();
-
+#if WITH_EDITOR
     DrawDebugCylinder(World, Origin - FVector(0,0,HalfHeight), Origin + FVector(0,0,HalfHeight), Radius, 12, FColor::Silver, false, 1.0f);
+#endif
     FVector LeftDir = Forward.RotateAngleAxis(-HalfAngle, FVector::UpVector);
     FVector RightDir = Forward.RotateAngleAxis(HalfAngle, FVector::UpVector);
+#if WITH_EDITOR
     DrawDebugLine(World, Origin, Origin + (LeftDir * Radius), FColor::Red, false, 1.0f);
     DrawDebugLine(World, Origin, Origin + (RightDir * Radius), FColor::Red, false, 1.0f);
-
+#endif
     TArray<AActor*> OverlappedActors;
     TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
     ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
@@ -181,11 +183,13 @@ bool UCombatUtil::ApplyDamageSphericalCone(const UObject* WorldContextObject, AA
     AActor* ActualCauser = DamageCauser ? DamageCauser : Instigator;
     AController* InstigatorController = Instigator->GetInstigatorController();
 
+#if WITH_EDITOR
     DrawDebugCone(
         World, Origin, Forward, Radius,
         FMath::DegreesToRadians(HalfAngle), FMath::DegreesToRadians(HalfAngle),
         60, FColor::Orange, false, 3.0f
     );
+#endif
 
     // [수정] 호출자가 스킬인지 확인
     USkillBase* CallerSkill = Cast<USkillBase>(const_cast<UObject*>(WorldContextObject));

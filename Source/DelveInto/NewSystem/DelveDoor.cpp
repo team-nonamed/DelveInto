@@ -38,7 +38,7 @@ void ADelveDoor::BeginPlay()
     // 시작 상태에 맞춰 문 설정
     if (bIsOpen)
     {
-        UnlockAndOpen();
+        UnlockAndOpen(false);
     }
     else
     {
@@ -46,7 +46,7 @@ void ADelveDoor::BeginPlay()
     }
 }
 
-void ADelveDoor::UnlockAndOpen()
+void ADelveDoor::UnlockAndOpen(bool Sound)
 {
     if (bIsOpen) return;
     bIsOpen = true;
@@ -56,7 +56,7 @@ void ADelveDoor::UnlockAndOpen()
 
     // 2. [핵심] 블루프린트에 "문 열어라!" 신호 보냄
     // 이제 BP에 있는 'Event Open Door'가 실행되면서 타임라인이 돌기 시작합니다.
-    OpenDoor(); 
+    OpenDoor(Sound); 
 }
 
 void ADelveDoor::CloseAndLock()

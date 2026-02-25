@@ -26,7 +26,7 @@ public:
 	int32 MaxSlots = 3; // 인벤토리 슬롯 최대 개수 (1, 2, 3)
 
 	// --- 슬롯 데이터 ---
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Slots")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Inventory|Slots")
 	TArray<FInventorySlot> Slots;
 
 	// --- 재화 데이터 (슬롯 차지 X) ---
@@ -35,6 +35,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory|Currency")
 	int32 MagicStoneAmount = 0;
+
+	// 특정 아이템을 원하는 개수만큼 소모합니다. (성공하면 true 반환)
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool ConsumeItem(UItemData* ItemToConsume, int32 Amount);
 
 	// --- 기능 ---
 	// 아이템 획득
