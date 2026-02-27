@@ -4,11 +4,13 @@
 #include "GameFramework/Actor.h"
 #include "DelveProjectile.generated.h"
 
+class UCapsuleComponent;
 class USphereComponent;
 class UPointLightComponent;
 class UNiagaraComponent;
 class UNiagaraSystem;
 class UProjectileMovementComponent;
+class USceneComponent; // [신규] 씬 컴포넌트 전방 선언
 
 UCLASS()
 class DELVEINTO_API ADelveProjectile : public AActor
@@ -22,9 +24,17 @@ protected:
     virtual void BeginPlay() override;
 
 public:
+    // =========================================================
     // --- 컴포넌트 ---
-    UPROPERTY(VisibleAnywhere, Category = "Projectile")
-    USphereComponent* CollisionComp;
+    // =========================================================
+    
+    // [수정] SceneComponent 역할을 대신할 '물리 감지용' 아주 작은 구체
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    USphereComponent* RootCollider;
+
+    // [수정] BlueprintReadWrite를 추가하여 블루프린트 디테일 패널에서 크기/회전 조절 가능
+    UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Projectile")
+    UCapsuleComponent* CollisionComp;
 
     UPROPERTY(VisibleAnywhere, Category = "Visual")
     UNiagaraComponent* ProjectileEffect; 
@@ -71,6 +81,12 @@ public:
 private:
     float CurrentDamage;
 
+private:
+    // (기존) 벽에 부딪혔을 때 (스피어용)
     UFUNCTION()
     void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+    // [신규] 적(몬스터)과 겹쳤을 때 (캡슐용)
+    UFUNCTION()
+    void OnOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 };
