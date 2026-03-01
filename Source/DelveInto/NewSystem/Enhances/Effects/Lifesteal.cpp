@@ -23,10 +23,26 @@ void UPerkEffect_Lifesteal::ProcessLifesteal(AActor* Attacker, AActor* Victim, f
 
 	if (FMath::FRand() <= Chance)
 	{
-		float HealAmount = FinalDamage * LifestealRatio;
-		
-		// 캐릭터의 체력 컴포넌트를 탐색하여 HealAmount만큼 회복시키는 로직 호출
-		UHealthHandler* HealthComp = Attacker->FindComponentByClass<UHealthHandler>();
-		if (HealthComp) HealthComp->ApplyHeal(HealAmount);
+		float HealAmount = 0.0f;
+
+		// [핵심] 선택된 모드에 따라 회복량 계산 방식을 분기 처리합니다.
+		if (LifestealMode == ELifestealMode::Percentage)
+		{
+			HealAmount = FinalDamage * LifestealRatio;
+		}
+		else if (LifestealMode == ELifestealMode::FlatAmount)
+		{
+			HealAmount = FlatHealAmount;
+		}
+
+		// 회복량이 0보다 클 때만 체력 컴포넌트를 찾아 적용
+		if (HealAmount > 0.0f)
+		{
+			UHealthHandler* HealthComp = Attacker->FindComponentByClass<UHealthHandler>();
+			if (HealthComp) 
+			{
+				HealthComp->ApplyHeal(HealAmount);
+			}
+		}
 	}
 }
