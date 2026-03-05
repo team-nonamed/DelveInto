@@ -13,6 +13,7 @@
 #include "NewSystem/Entities/Characters/Handlers/HealthHandler.h"
 #include "NewSystem/Entities/Characters/Handlers/InventoryHandler.h" 
 #include "NewSystem/Entities/Characters/Handlers/PerkHandler.h"
+#include "NewSystem/Entities/Enemies/DelveBoss.h"
 #include "NewSystem/Interfaces/Interactable.h"
 #include "NewSystem/Widgets/Perks/PerkSelectionWidget.h"
 #include "UObject/UObjectIterator.h"
@@ -128,7 +129,7 @@ void ADelveCharacter::TriggerLevelUp()
     }
     
     UPerkSelectionWidget* SelectionUI = CreateWidget<UPerkSelectionWidget>(GetWorld(), PerkSelectionWidgetClass);
-    if (SelectionUI)
+    if (SelectionUI && !BossTriggered)
     {
         SelectionUI->AddToViewport();
         SelectionUI->ShowChoices(PerkHandler, 3);
@@ -286,7 +287,7 @@ void ADelveCharacter::HandleDeath(ACharacter* DeadCharacter)
             ACharacter* OtherChar = Cast<ACharacter>(Actor);
             
             // 찾은 캐릭터가 유효하고, '나 자신(플레이어)'이 아니라면
-            if (OtherChar && OtherChar != this)
+            if (OtherChar && OtherChar != this && OtherChar->IsA(ADelveBoss::StaticClass()))
             {
                 // 99999의 절명 데미지를 가하여 적의 HealthHandler가 사망 처리를 하도록 유도합니다.
                 UGameplayStatics::ApplyDamage(OtherChar, 99999.0f, PC, this, nullptr);
@@ -300,6 +301,11 @@ void ADelveCharacter::HandleDeath(ACharacter* DeadCharacter)
             {
                 It->Stop();
             }
+        }
+
+        if (this->CurrentBGMComponent)
+        {
+            this->CurrentBGMComponent->Stop();
         }
 
         // 5. 사망 사운드 및 전용 BGM 재생

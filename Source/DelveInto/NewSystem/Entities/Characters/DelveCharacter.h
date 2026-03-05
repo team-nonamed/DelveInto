@@ -112,6 +112,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* OneAction;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    UAudioComponent* CurrentBGMComponent;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool BossTriggered = false;
+
 protected:
     UFUNCTION()
     void HandleStatChanged(EStatCategory StatType, float DeltaValue);

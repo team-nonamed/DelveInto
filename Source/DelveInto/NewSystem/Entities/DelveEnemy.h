@@ -93,7 +93,7 @@ protected:
     class UBoxComponent* BodyCollision;
     
     virtual void ExecuteAttack(); 
-    void PerformMeleeDamageCheck();
+    virtual void PerformMeleeDamageCheck();
 
     UPROPERTY()
     AActor* CachedTarget; 
@@ -114,7 +114,7 @@ protected:
     void PrintDistanceToPlayer();
     virtual void UpdateAnimation();
     void DestroySelf();               
-
+    
     UPROPERTY(EditAnywhere, Category = "Combat")
     bool bAlwaysFacePlayer = true;
 
