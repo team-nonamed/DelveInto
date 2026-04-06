@@ -1,5 +1,4 @@
 ﻿#include "DungeonGenerator.h"
-#include "NewSystem/Dungeons/Props/Rooms/RoomBase.h"
 #include "NewSystem/DelveDoor.h"
 
 ADungeonGenerator::ADungeonGenerator()
@@ -37,7 +36,7 @@ void ADungeonGenerator::CreateLayout()
 
         // 시작 방 (0,0)
         FIntPoint CurrentCoord(0, 0);
-        RoomDataMap.Add(CurrentCoord, FRoomData(CurrentCoord, ERoomType::Start));
+        RoomDataMap.Add(CurrentCoord, FRoomStatus(CurrentCoord, ERoomType::Start));
 
         int32 SpecialRoomCount = 2; // Boss, NPC
         int32 TargetNormalRooms = FMath::Max(1, MaxRoomCount - SpecialRoomCount);
@@ -234,9 +233,9 @@ void ADungeonGenerator::SpawnDoorsAndLink()
         ERoomType MyType = RoomDataMap[MyCoord].Type;
         bool bIsSpecial = (MyType == ERoomType::Boss || MyType == ERoomType::NPC);
 
-        ERoomDirection CheckDirs[] = { ERoomDirection::Forward, ERoomDirection::Right };
+        ESotaDirection CheckDirs[] = { ESotaDirection::Forward, ESotaDirection::Right };
 
-        for (ERoomDirection Dir : CheckDirs)
+        for (ESotaDirection Dir : CheckDirs)
         {
             FIntPoint NeighborCoord = GetNeighborCoordinate(MyCoord, Dir);
             if (!SpawnedRoomMap.Contains(NeighborCoord)) continue;
@@ -269,7 +268,7 @@ void ADungeonGenerator::SpawnDoorsAndLink()
 
             // --- 이하 문 스폰 및 연결 로직 동일 ---
             FVector DoorLoc = (MyRoom->GetActorLocation() + NeighborRoom->GetActorLocation()) * 0.5f;
-            FRotator DoorRot = (Dir == ERoomDirection::Right) ? FRotator(0, 90, 0) : FRotator::ZeroRotator;
+            FRotator DoorRot = (Dir == ESotaDirection::Right) ? FRotator(0, 90, 0) : FRotator::ZeroRotator;
 
             ADelveDoor* NewDoor = GetWorld()->SpawnActor<ADelveDoor>(DoorClass, DoorLoc, DoorRot);
             if (NewDoor)
@@ -279,7 +278,7 @@ void ADungeonGenerator::SpawnDoorsAndLink()
                 MyRoom->OpenWall(Dir);
 
                 // NeighborRoom 입장
-                ERoomDirection OpDir = GetOppositeDirection(Dir);
+                ESotaDirection OpDir = GetOppositeDirection(Dir);
                 NeighborRoom->Doors.Add(OpDir, NewDoor);
                 NeighborRoom->OpenWall(OpDir);
             }
@@ -288,29 +287,29 @@ void ADungeonGenerator::SpawnDoorsAndLink()
 }
 
 // 헬퍼: 좌표 계산
-FIntPoint ADungeonGenerator::GetNeighborCoordinate(FIntPoint Current, ERoomDirection Direction)
+FIntPoint ADungeonGenerator::GetNeighborCoordinate(FIntPoint Current, ESotaDirection Direction)
 {
     switch (Direction)
     {
-        case ERoomDirection::Forward:  return FIntPoint(Current.X + 1, Current.Y);
-        case ERoomDirection::Right:    return FIntPoint(Current.X, Current.Y + 1);
-        case ERoomDirection::Backward: return FIntPoint(Current.X - 1, Current.Y);
-        case ERoomDirection::Left:     return FIntPoint(Current.X, Current.Y - 1);
+        case ESotaDirection::Forward:  return FIntPoint(Current.X + 1, Current.Y);
+        case ESotaDirection::Right:    return FIntPoint(Current.X, Current.Y + 1);
+        case ESotaDirection::Backward: return FIntPoint(Current.X - 1, Current.Y);
+        case ESotaDirection::Left:     return FIntPoint(Current.X, Current.Y - 1);
     }
     return Current;
 }
 
 // 헬퍼: 반대 방향
-ERoomDirection ADungeonGenerator::GetOppositeDirection(ERoomDirection Direction)
+ESotaDirection ADungeonGenerator::GetOppositeDirection(ESotaDirection Direction)
 {
     switch (Direction)
     {
-        case ERoomDirection::Forward:  return ERoomDirection::Backward;
-        case ERoomDirection::Right:    return ERoomDirection::Left;
-        case ERoomDirection::Backward: return ERoomDirection::Forward;
-        case ERoomDirection::Left:     return ERoomDirection::Right;
+        case ESotaDirection::Forward:  return ESotaDirection::Backward;
+        case ESotaDirection::Right:    return ESotaDirection::Left;
+        case ESotaDirection::Backward: return ESotaDirection::Forward;
+        case ESotaDirection::Left:     return ESotaDirection::Right;
     }
-    return ERoomDirection::Forward;
+    return ESotaDirection::Forward;
 }
 
 TSubclassOf<ARoomBase> ADungeonGenerator::GetRandomRoomClass(ERoomType Type)

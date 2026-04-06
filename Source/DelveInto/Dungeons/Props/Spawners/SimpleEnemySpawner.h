@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
-#include "NewSystem/Interfaces/EnemySpawner.h"
+#include "Interfaces/EnemySpawner.h"
 #include "SimpleEnemySpawner.generated.h"
 
 

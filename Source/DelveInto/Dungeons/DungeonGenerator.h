@@ -3,22 +3,36 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RoomStatus.h"
+#include "RoomType.h"
 #include "GameFramework/Actor.h"
-#include "NewSystem/Dungeons/RoomData.h"      // FRoomData 구조체 포함
-#include "NewSystem/Dungeons/RoomDirection.h" // ERoomDirection 열거형 포함
+#include "Structs/LimitCounts.h"
 #include "DungeonGenerator.generated.h"
 
 class ARoomBase;
 class ADelveDoor;
 
+
 USTRUCT(BlueprintType)
-struct FRoomClassList
+struct FRoomTypeConfig
 {
     GENERATED_BODY()
 
     // 에디터에서 여러 개의 방 BP를 넣을 수 있는 배열
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<TSubclassOf<ARoomBase>> Variations;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    bool bHasLimitCount;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bHasLimitCount"))
+    FLimitCounts LimitCounts;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    bool FurthestSpawn;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    bool IsConnectedByOneConnector;
 };
 
 UCLASS()
@@ -32,6 +46,12 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+#pragma region Properties
+
+#pragma region 
+    
+#pragma endregion
+    
 public:
     // =================================================================
     // 설정 변수
@@ -46,7 +66,7 @@ public:
 
     // 스폰할 방 클래스 (BP_RoomBase)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon Config")
-    TMap<ERoomType, FRoomClassList> RoomPresets;
+    TMap<ERoomType, FRoomTypeConfig> RoomPresets;
 
     // 스폰할 문 클래스 (BP_DelveDoor)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon Config")
@@ -58,7 +78,7 @@ private:
     // =================================================================
 
     // 좌표 : 방 데이터 (논리적 데이터)
-    TMap<FIntPoint, FRoomData> RoomDataMap;
+    TMap<FIntPoint, FRoomStatus> RoomDataMap;
 
     // 좌표 : 실제 스폰된 방 액터 (물리적 액터)
     UPROPERTY()
@@ -86,10 +106,10 @@ private:
     void SpawnDoorsAndLink();
 
     // 헬퍼: 특정 방향의 좌표 구하기
-    FIntPoint GetNeighborCoordinate(FIntPoint Current, ERoomDirection Direction);
+    FIntPoint GetNeighborCoordinate(FIntPoint Current, ESotaDirection Direction);
     
     // 헬퍼: 반대 방향 구하기 (Forward <-> Backward)
-    ERoomDirection GetOppositeDirection(ERoomDirection Direction);
+    ESotaDirection GetOppositeDirection(ESotaDirection Direction);
 
     TSubclassOf<ARoomBase> GetRandomRoomClass(ERoomType Type);
 };

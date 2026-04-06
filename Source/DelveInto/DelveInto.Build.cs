@@ -26,6 +26,7 @@ public class DelveInto : ModuleRules
 			"LevelSequence",
 			"MovieScene",
 			"FMODStudio",
+			"PaperZD"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate",

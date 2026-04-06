@@ -1,7 +1,7 @@
 ﻿#include "SpawnEnemyTriggerBox.h"
 
+#include "Dungeons/Props/RoomBase.h"
 #include "NewSystem/Entities/Characters/DelveCharacter.h"
-#include "NewSystem/Dungeons/Props/Rooms/RoomBase.h"
 
 class ARoomBase;
 
