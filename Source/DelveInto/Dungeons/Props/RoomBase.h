@@ -66,7 +66,7 @@ protected:
 	 *	</p>
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Room Info")
-	float Size;
+	float Size = 6300.0f;
 
 public:
 	/**
@@ -177,6 +177,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Connector Info")
 	TMap<ESotaDirection, TObjectPtr<UStaticMesh>> Fillers;
 
+	/** 런타임에 생성된 Filler 컴포넌트들을 관리합니다. */
+	UPROPERTY(VisibleInstanceOnly, Transient, Category = "Connector Info")
+	TMap<ESotaDirection, TObjectPtr<UStaticMeshComponent>> SpawnedFillers;
+
 public:
 	UFUNCTION(BlueprintCallable, Category = "Connector Info")
 	UStaticMesh* GetFiller(ESotaDirection Direction) const
@@ -191,6 +195,12 @@ public:
 
 		return FoundPtr->Get();
 	}
+
+	/**
+	 * 해당 방향에 Connector 대신 Filler(막음용 벽) 메쉬를 생성합니다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Connector Info")
+	void SpawnFiller(ESotaDirection Direction);
 	
 #pragma endregion
 

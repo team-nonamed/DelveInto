@@ -6,7 +6,6 @@
 #include "Components/ArrowComponent.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "NewSystem/DelveDoor.h"
 #include "NewSystem/Entities/Characters/DelveCharacter.h"
 #include "NewSystem/Utils/DirectionUtil.h"
 
@@ -344,13 +343,12 @@ bool ARoomBase::CheckRoomClear_Implementation()
 {
 	if (Enemies.IsEmpty())
 	{
-		for (auto& Pairs : Doors)
+		// 수정됨: Doors 대신 Connectors를 순회하고 다형성 함수(OpenConnector) 호출
+		for (auto& Pair : Connectors)
 		{
-			if (Pairs.Value)
+			if (ARoomConnector* Connector = Pair.Value.Get())
 			{
-				
-				
-				Pairs.Value->OpenDoor(true);
+				Connector->OpenConnector(true);
 			}
 		}
 
@@ -386,11 +384,13 @@ void ARoomBase::TrigSpawn()
 
 	if (Enemies.Num() > 0)
 	{
-		for (auto& Pairs: Doors)
+		// 방에 적이 스폰되어 문을 닫아야 할 때
+		for (auto& Pair : Connectors)
 		{
-			if (Pairs.Value)
+			if (ARoomConnector* Connector = Pair.Value.Get())
 			{
-				Pairs.Value->CloseDoor();
+				// 다형성에 의해, 만약 이것이 ADelveDoor라면 알아서 CloseConnector()가 실행되며 문이 잠깁니다.
+				Connector->CloseConnector();
 			}
 		}
 	}
@@ -454,10 +454,28 @@ void ARoomBase::OpenWall(ESotaDirection Direction)
 	}
 }
 
-ARoomConnector* ARoomBase::SpawnConnector(ESotaDirection Direction)
+ARoomConnector* ARoomBase::SpawnConnector(ESotaDirection WorldDirection)
 {
+	// 1. 월드 방향을 로컬 방향으로 변환 (OpenWall과 동일한 로직)
+	FVector WorldDir = FVector::ZeroVector;
+	switch (WorldDirection) {
+	case ESotaDirection::Forward:  WorldDir = FVector(1, 0, 0); break;
+	case ESotaDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
+	case ESotaDirection::Right:    WorldDir = FVector(0, 1, 0); break;
+	case ESotaDirection::Left:     WorldDir = FVector(0, -1, 0); break;
+	}
+    
+	FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(WorldDir);
+	ESotaDirection LocalDirection = ESotaDirection::Forward;
+    
+	if (LocalDir.X > 0.5f) LocalDirection = ESotaDirection::Forward;
+	else if (LocalDir.X < -0.5f) LocalDirection = ESotaDirection::Backward;
+	else if (LocalDir.Y > 0.5f) LocalDirection = ESotaDirection::Right;
+	else if (LocalDir.Y < -0.5f) LocalDirection = ESotaDirection::Left;
+	
+	
 	// 1. 해당 방향의 Spawner 찾기
-	const TObjectPtr<UConnectorSpawner>* SpawnerPtr = ConnectorSpawners.Find(Direction);
+	const TObjectPtr<UConnectorSpawner>* SpawnerPtr = ConnectorSpawners.Find(LocalDirection);
 	if (!SpawnerPtr || !(*SpawnerPtr))
 	{
 		return nullptr;
@@ -469,7 +487,7 @@ ARoomConnector* ARoomBase::SpawnConnector(ESotaDirection Direction)
 	TSubclassOf<ARoomConnector> ClassToSpawn = Spawner->GetConnectorClass();
 	if (!ClassToSpawn)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ARoomBase: %s 방향의 Spawner에 ConnectorClass가 지정되지 않았습니다!"), *UEnum::GetValueAsString(Direction));
+		UE_LOG(LogTemp, Warning, TEXT("ARoomBase: %s 방향의 Spawner에 ConnectorClass가 지정되지 않았습니다!"), *UEnum::GetValueAsString(LocalDirection));
 		return nullptr;
 	}
 
@@ -487,7 +505,7 @@ ARoomConnector* ARoomBase::SpawnConnector(ESotaDirection Direction)
 	if (NewConnector)
 	{
 		// 6. 스폰 성공 시 내 방에 등록 (벽 열기 포함)
-		RegisterConnector(Direction, NewConnector);
+		RegisterConnector(LocalDirection, NewConnector);
 	}
 
 	return NewConnector;
@@ -502,5 +520,50 @@ void ARoomBase::RegisterConnector(ESotaDirection Direction, ARoomConnector* InCo
         
 		// 커넥터가 연결되었으므로 해당 방향의 벽을 엽니다.
 		OpenWall(Direction);
+	}
+}
+
+void ARoomBase::SpawnFiller(ESotaDirection WorldDirection)
+{
+	FVector WorldDir = FVector::ZeroVector;
+	switch (WorldDirection) {
+	case ESotaDirection::Forward:  WorldDir = FVector(1, 0, 0); break;
+	case ESotaDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
+	case ESotaDirection::Right:    WorldDir = FVector(0, 1, 0); break;
+	case ESotaDirection::Left:     WorldDir = FVector(0, -1, 0); break;
+	}
+    
+	FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(WorldDir);
+	ESotaDirection LocalDirection = ESotaDirection::Forward;
+    
+	if (LocalDir.X > 0.5f) LocalDirection = ESotaDirection::Forward;
+	else if (LocalDir.X < -0.5f) LocalDirection = ESotaDirection::Backward;
+	else if (LocalDir.Y > 0.5f) LocalDirection = ESotaDirection::Right;
+	else if (LocalDir.Y < -0.5f) LocalDirection = ESotaDirection::Left;
+	
+	// 1. 해당 방향에 설정된 Filler 메쉬 가져오기
+	UStaticMesh* FillerMesh = GetFiller(LocalDirection);
+	if (!FillerMesh) return;
+
+	// 2. 위치 기준이 될 스포너 찾기
+	const TObjectPtr<UConnectorSpawner>* SpawnerPtr = ConnectorSpawners.Find(LocalDirection);
+	if (!SpawnerPtr || !(*SpawnerPtr)) return;
+
+	// 3. 런타임에 UStaticMeshComponent 동적 생성
+	FString NameStr = FString::Printf(TEXT("FillerComponent_%d"), static_cast<int32>(LocalDirection));
+	UStaticMeshComponent* NewFiller = NewObject<UStaticMeshComponent>(this, FName(*NameStr));
+    
+	if (NewFiller)
+	{
+		NewFiller->SetStaticMesh(FillerMesh);
+		NewFiller->SetupAttachment(RootComponent);
+        
+		// 스포너와 완벽하게 동일한 위치/회전 적용
+		NewFiller->SetRelativeTransform((*SpawnerPtr)->GetRelativeTransform());
+        
+		// [중요] 런타임에 동적으로 생성한 컴포넌트는 반드시 RegisterComponent를 호출해야 월드에 나타납니다.
+		NewFiller->RegisterComponent();
+
+		SpawnedFillers.Add(LocalDirection, NewFiller);
 	}
 }

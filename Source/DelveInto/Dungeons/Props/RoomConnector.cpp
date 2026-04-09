@@ -11,16 +11,3 @@ ARoomConnector::ARoomConnector()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-// Called when the game starts or when spawned
-void ARoomConnector::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-// Called every frame
-void ARoomConnector::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-

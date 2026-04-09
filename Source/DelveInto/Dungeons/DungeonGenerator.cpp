@@ -2,7 +2,7 @@
 
 #include "Algo/RandomShuffle.h"
 #include "Chaos/EPA.h"
-#include "NewSystem/DelveDoor.h"
+#include "Props/Connectors/DelveDoor.h"
 
 DEFINE_LOG_CATEGORY(LogRoomPreset);
 
@@ -364,8 +364,6 @@ void ADungeonGenerator::HandleRoomExplored(ARoomBase* ExploredRoom)
 
 void ADungeonGenerator::SpawnDoorsAndLink()
 {
-    // 기존의 if (!DoorClass) return; 삭제 -> 방의 Spawner가 직접 결정하므로 불필요
-
     for (auto& Elem : SpawnedRoomMap)
     {
         FIntPoint MyCoord = Elem.Key;
@@ -378,12 +376,21 @@ void ADungeonGenerator::SpawnDoorsAndLink()
             bIsMyRoomSpecial = RoomPresets[MyType].bIsConnectedByOneConnector;
         }
 
-        ESotaDirection CheckDirs[] = { ESotaDirection::Forward, ESotaDirection::Right };
+        // [수정 1] 허공을 꼼꼼하게 막기 위해 4방향을 모두 순회합니다.
+        ESotaDirection AllDirs[] = { ESotaDirection::Forward, ESotaDirection::Backward, ESotaDirection::Right, ESotaDirection::Left };
 
-        for (ESotaDirection Dir : CheckDirs)
+        for (ESotaDirection Dir : AllDirs)
         {
             FIntPoint NeighborCoord = GetNeighborCoordinate(MyCoord, Dir);
-            if (!SpawnedRoomMap.Contains(NeighborCoord)) continue;
+            
+            // =============================================================
+            // 조건 1. 이웃 방이 아예 없는 경우 -> 허공이므로 벽(Filler)으로 막음
+            // =============================================================
+            if (!SpawnedRoomMap.Contains(NeighborCoord)) 
+            {
+                MyRoom->SpawnFiller(Dir);
+                continue;
+            }
 
             ARoomBase* NeighborRoom = SpawnedRoomMap[NeighborCoord];
             ERoomType NeighborType = RoomDataMap[NeighborCoord].Type;
@@ -394,33 +401,47 @@ void ADungeonGenerator::SpawnDoorsAndLink()
                 bNeighborIsSpecial = RoomPresets[NeighborType].bIsConnectedByOneConnector;
             }
 
-            // [특수방 로직 유지]
+            // =============================================================
+            // 조건 2. 특수방 로직에 의해 연결이 차단되어야 하는지 검사
+            // =============================================================
+            bool bIsConnectionBlocked = false;
+
             if (bIsMyRoomSpecial)
             {
                 FVector WorldDirVec = FVector(NeighborCoord.X - MyCoord.X, NeighborCoord.Y - MyCoord.Y, 0.0f);
                 FVector LocalForwardVec = MyRoom->GetActorForwardVector();
-                if (!WorldDirVec.GetSafeNormal().Equals(LocalForwardVec, 0.1f)) continue;
+                if (!WorldDirVec.GetSafeNormal().Equals(LocalForwardVec, 0.1f)) bIsConnectionBlocked = true;
             }
 
             if (bNeighborIsSpecial)
             {
                 FVector WorldToMeVec = FVector(MyCoord.X - NeighborCoord.X, MyCoord.Y - NeighborCoord.Y, 0.0f);
                 FVector NeighborForwardVec = NeighborRoom->GetActorForwardVector();
-                if (!WorldToMeVec.GetSafeNormal().Equals(NeighborForwardVec, 0.1f)) continue;
+                if (!WorldToMeVec.GetSafeNormal().Equals(NeighborForwardVec, 0.1f)) bIsConnectionBlocked = true;
+            }
+
+            // 연결이 막혀있다면 해당 방향을 벽(Filler)으로 막습니다.
+            if (bIsConnectionBlocked)
+            {
+                MyRoom->SpawnFiller(Dir);
+                continue;
             }
 
             // =============================================================
-            // [변경됨] ConnectorSpawner를 통한 스폰 및 연결 로직
+            // 조건 3. 연결이 유효한 경우 Connector 스폰
             // =============================================================
-            
-            // 1. MyRoom을 주체로 삼아, 해당 방향의 Spawner 설정대로 Connector 스폰
-            ARoomConnector* SpawnedConnector = MyRoom->SpawnConnector(Dir);
-
-            if (SpawnedConnector)
+            // 주의: 중복 생성을 막기 위해, 월드 기준 Forward / Right를 검사할 때만 주도적으로 스폰합니다.
+            // Backward / Left일 때는 이웃 방이 나를 발견하고 스폰해서 꽂아주기를 기다립니다.
+            if (Dir == ESotaDirection::Forward || Dir == ESotaDirection::Right)
             {
-                // 2. 스폰 성공 시, 이웃 방에게 이 커넥터를 공유하고 등록시킴
-                ESotaDirection OpDir = GetOppositeDirection(Dir);
-                NeighborRoom->RegisterConnector(OpDir, SpawnedConnector);
+                ARoomConnector* SpawnedConnector = MyRoom->SpawnConnector(Dir);
+
+                if (SpawnedConnector)
+                {
+                    // 2. 스폰 성공 시, 이웃 방에게 이 커넥터를 공유하고 등록시킴
+                    ESotaDirection OpDir = GetOppositeDirection(Dir);
+                    NeighborRoom->RegisterConnector(OpDir, SpawnedConnector);
+                }
             }
         }
     }

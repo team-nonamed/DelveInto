@@ -1,6 +1,6 @@
 ﻿#include "DelveRoomBase.h"
 #include "Components/BoxComponent.h"
-#include "DelveDoor.h" // 문 액터 헤더 (따로 만드셔야 함)
+#include "Dungeons/Props/Connectors/DelveDoor.h"
 #include "Entities/Characters/DelveCharacter.h"
 
 ADelveRoomBase::ADelveRoomBase()
@@ -55,7 +55,7 @@ void ADelveRoomBase::LockDoors()
 {
 	for (ADelveDoor* Door : SpawnedDoors)
 	{
-		if(Door) Door->CloseAndLock();
+		if(Door) Door->CloseConnector();
 	}
 }
 
@@ -63,6 +63,6 @@ void ADelveRoomBase::UnlockDoors()
 {
 	for (ADelveDoor* Door : SpawnedDoors)
 	{
-		if(Door) Door->UnlockAndOpen(true);
+		if(Door) Door->OpenConnector();
 	}
 }
