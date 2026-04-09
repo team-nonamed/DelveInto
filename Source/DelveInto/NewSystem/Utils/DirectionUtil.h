@@ -5,6 +5,8 @@
 #include "Engine/DataTable.h"
 #include "Types/Direction.h"
 
+#include "DirectionUtil.generated.h"
+
 UCLASS()
 class DELVEINTO_API USotaDirectionUtil : public UBlueprintFunctionLibrary
 {

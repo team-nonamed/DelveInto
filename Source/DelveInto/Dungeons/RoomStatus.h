@@ -11,21 +11,23 @@ struct FRoomStatus
 {
 	GENERATED_BODY()
 
-	/**
-	 *  @deprecated
-	 */
 	UPROPERTY(BlueprintReadOnly)
-	FIntPoint Coordinate; // 격자 좌표 (예: 0,0 / 1,0)
-	
+	FIntPoint Coordinate;
+
 	UPROPERTY(BlueprintReadOnly)
 	ERoomType Type;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSubclassOf<ARoomBase> RoomClass;
-		
+	// 이 칸에 실제로 할당된 구체적인 클래스 (Variations 중 하나)
 	UPROPERTY(BlueprintReadOnly)
-	bool bIsPlayerVisited;
-		
-	// 순회를 위해 미리 만들어둔 변수
-	bool bIsTraversed;
+	TSubclassOf<ARoomBase> RoomClass;
+
+	UPROPERTY(BlueprintReadOnly)
+	bool bIsPlayerVisited = false;
+
+	// 기본 생성자
+	FRoomStatus() : Coordinate(0,0), Type(ERoomType::Normal), RoomClass(nullptr) {}
+
+	// 데이터 삽입을 위한 편의 생성자
+	FRoomStatus(FIntPoint InCoord, ERoomType InType, TSubclassOf<ARoomBase> InClass)
+		: Coordinate(InCoord), Type(InType), RoomClass(InClass) {}
 };

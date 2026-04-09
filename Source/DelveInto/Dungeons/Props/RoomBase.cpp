@@ -138,30 +138,30 @@ ARoomBase::ARoomBase()
 	// Root Component 설정
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Center Anchor"));
 
+
+	// Room의 영역을 표시하는 Display용 Component들을 초기화
 #if WITH_EDITOR
 	
-	/**
-	 *	Room의 방향을 나타내기 위한 Arrow Component들을 담아두기 위한 Holder를 생성하고
-	 *	Room의 영역을 나타내기 위한 Box Component들을 담아두기 위한 Holder를 생성하며
-	 *	Room의 방향을 나타내는 Arrow Component들을 생성한 후
-	 *	Room의 바닥 영역을 표시하는 Box Component를 생성하고
-	 *	Room의 connector 영역을 표시하는 Box Component를 생성
-	 */
-#pragma region Create Editor Visualizers
-	
-
 	CreateArrowDisplayHolder();
 	CreateRegionDisplayHolder();
 	CreateFloorRegionDisplay();
 	CreateDirectionArrowDisplays();
 	CreateConnectorRegionDisplays();
 
-
-#pragma endregion
-
 #endif
 
+	// 연결부 생성기 생성
 	CreateConnectorSpawners();
+
+	// 플레이어 감지 박스 생성
+	PlayerDetectionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("Player Detection Box"));
+	PlayerDetectionBox->SetupAttachment(RootComponent);
+
+	// 플레이어(Pawn)만 감지하도록 설정 (프로젝트 설정에 따라 다를 수 있음)
+	PlayerDetectionBox->SetCollisionProfileName(TEXT("Trigger"));
+    
+	// 이벤트 바인딩
+	PlayerDetectionBox->OnComponentBeginOverlap.AddDynamic(this, &ARoomBase::OnPlayerOverlap);
 }
 
 
@@ -287,14 +287,22 @@ void ARoomBase::UpdateConnectorSpawners(float InHalfSize)
 	// WallBackward = Cast<UStaticMeshComponent>(WallBackwardRef.GetComponent(this));
 	// WallRight = Cast<UStaticMeshComponent>(WallRightRef.GetComponent(this));
 	// WallLeft = Cast<UStaticMeshComponent>(WallLeftRef.GetComponent(this));
-
-#if WITH_EDITOR
 	
-    // Room의 HalfSize를 구함
+	// Room의 HalfSize를 구함
 	float HalfSize = Size * 0.5f;
 
+	if (PlayerDetectionBox)
+	{
+		// 높이는 적절히 플레이어를 커버할 정도(예: 300)로 설정
+		PlayerDetectionBox->SetBoxExtent(FVector(HalfSize - 200, HalfSize - 200, 300.0f));
+		// 바닥에서 약간 띄우거나 중심에 맞춤
+		PlayerDetectionBox->SetRelativeLocation(FVector(0.0f, 0.0f, 150.0f));
+	}
+#if WITH_EDITOR
+	
+    
+
 	// 바닥 영역을 나타내는 박스의 크기와 위치 업데이트
-#pragma region Update Floor Region
 	if (FloorRegionDisplay)
 	{
 		// 반지름 개념이므로 절반값 적용, 두께는 50.0f
@@ -304,22 +312,32 @@ void ARoomBase::UpdateConnectorSpawners(float InHalfSize)
 		// 윗면이 0(바닥 평면)이 되도록 두께 절반만큼 아래로 배치
 		FloorRegionDisplay->SetRelativeLocation(FVector(0.0f, 0.0f, -BoxHalfZ));
 	}
-#pragma endregion
+
 
 	// 각 방향별 연결부 영역 배치 갱신
-#pragma region Update Connector Regions
-	
 	UpdateConnectorRegionDisplays(HalfSize);
-#pragma endregion
 
 	// 각 방향별 화살표 위치 및 회전 갱신
-#pragma region Update Direction Arrows
-	
 	UpdateDirectionArrowDisplays(HalfSize);
-#pragma endregion
+
 #endif
 
 	UpdateConnectorSpawners(HalfSize);
+}
+
+void ARoomBase::OnPlayerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+							   UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
+							   bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && OtherActor->IsA(ADelveCharacter::StaticClass()))
+	{
+		if (!bIsExplored)
+		{
+			bIsExplored = true;
+			// 중앙 관리자(DungeonGenerator)에게 알림!
+			OnPlayerEnteredRoom.Broadcast(this);
+		}
+	}
 }
 
 bool ARoomBase::CheckRoomClear_Implementation()
@@ -414,6 +432,9 @@ void ARoomBase::OpenWall(ESotaDirection Direction)
 	case ESotaDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
 	case ESotaDirection::Right:    WorldDir = FVector(0, 1, 0); break;
 	case ESotaDirection::Left:     WorldDir = FVector(0, -1, 0); break;
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("Invalid Direction in OpenWall: %s"), *UEnum::GetValueAsString(Direction));
+		return;
 	}
 
 	// 월드 방향을 내 로컬 공간으로 역변환 (InverseTransformVector)
@@ -430,5 +451,56 @@ void ARoomBase::OpenWall(ESotaDirection Direction)
 		TargetWall->SetHiddenInGame(true);
 		TargetWall->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		TargetWall->SetVisibility(false); 
+	}
+}
+
+ARoomConnector* ARoomBase::SpawnConnector(ESotaDirection Direction)
+{
+	// 1. 해당 방향의 Spawner 찾기
+	const TObjectPtr<UConnectorSpawner>* SpawnerPtr = ConnectorSpawners.Find(Direction);
+	if (!SpawnerPtr || !(*SpawnerPtr))
+	{
+		return nullptr;
+	}
+
+	UConnectorSpawner* Spawner = *SpawnerPtr;
+
+	// 2. Spawner에 지정된 스폰할 클래스 가져오기
+	TSubclassOf<ARoomConnector> ClassToSpawn = Spawner->GetConnectorClass();
+	if (!ClassToSpawn)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ARoomBase: %s 방향의 Spawner에 ConnectorClass가 지정되지 않았습니다!"), *UEnum::GetValueAsString(Direction));
+		return nullptr;
+	}
+
+	// 3. Spawner의 월드 트랜스폼(위치, 회전, 크기) 가져오기
+	FTransform SpawnTransform = Spawner->GetComponentTransform();
+
+	// 4. 스폰 파라미터 설정
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	// 5. 월드에 Connector 스폰
+	ARoomConnector* NewConnector = GetWorld()->SpawnActor<ARoomConnector>(ClassToSpawn, SpawnTransform, SpawnParams);
+    
+	if (NewConnector)
+	{
+		// 6. 스폰 성공 시 내 방에 등록 (벽 열기 포함)
+		RegisterConnector(Direction, NewConnector);
+	}
+
+	return NewConnector;
+}
+
+void ARoomBase::RegisterConnector(ESotaDirection Direction, ARoomConnector* InConnector)
+{
+	if (InConnector)
+	{
+		// 방의 활성화된 Connectors 목록에 추가
+		Connectors.Add(Direction, InConnector);
+        
+		// 커넥터가 연결되었으므로 해당 방향의 벽을 엽니다.
+		OpenWall(Direction);
 	}
 }

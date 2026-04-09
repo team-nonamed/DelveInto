@@ -10,6 +10,9 @@
 #include "RoomBase.generated.h"
 
 
+// 매개변수로 자기 자신(ARoomBase*)을 넘겨서 어떤 방인지 알 수 있게 합니다.
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerEnteredRoom, ARoomBase*, EnteredRoom);
+
 class ADelveDoor;
 
 UCLASS(Abstract)
@@ -134,6 +137,19 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Connector Info")
 	TMap<ESotaDirection, TObjectPtr<UConnectorSpawner>> ConnectorSpawners;
+
+public:
+	/**
+	 * 해당 방향의 ConnectorSpawner 정보를 바탕으로 Connector를 월드에 스폰합니다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Connector Info")
+	ARoomConnector* SpawnConnector(ESotaDirection Direction);
+
+	/**
+	 * 이미 월드에 스폰된 Connector를 이 방에 연결하고 벽을 엽니다. (이웃 방이 스폰한 경우 사용)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Connector Info")
+	void RegisterConnector(ESotaDirection Direction, ARoomConnector* InConnector);
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Connector Info")
@@ -267,7 +283,31 @@ protected:
 #pragma endregion
 #endif
 
+#pragma region Room Triggers
 
+protected:
+	/** 플레이어 진입을 감지하기 위한 트리거 박스 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Room Info")
+	TObjectPtr<UBoxComponent> PlayerDetectionBox;
+
+	/** 플레이어가 이 방에 들어왔을 때 호출될 핸들러 */
+	UFUNCTION()
+	virtual void OnPlayerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+								UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
+								bool bFromSweep, const FHitResult& SweepResult);
+
+public:
+	/** 미니맵에서 이 방이 방문되었는지 확인하기 위한 상태 변수 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Room Info")
+	bool bIsExplored = false;
+
+	/** 플레이어가 이 방에 진입했을 때 발생하는 이벤트 */
+	UPROPERTY(BlueprintAssignable, Category = "Room Events")
+	FOnPlayerEnteredRoom OnPlayerEnteredRoom;
+	
+#pragma endregion
+
+	
 #pragma region deprecated
 public:
 	/**
@@ -340,7 +380,6 @@ private:
 	UE_DEPRECATED(1.1, "다른 시스템으로 변경됨")
 	UPROPERTY()
 	UStaticMeshComponent* WallLeft = nullptr;
-#pragma endregion
 
 #pragma region Debug Properties
 
@@ -397,6 +436,8 @@ protected:
 
 #pragma endregion
 
+#pragma endregion
+	
 #pragma region Inner Methods
 	
 #if WITH_EDITORONLY_DATA

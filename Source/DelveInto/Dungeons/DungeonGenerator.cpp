@@ -1,5 +1,10 @@
 ﻿#include "DungeonGenerator.h"
+
+#include "Algo/RandomShuffle.h"
+#include "Chaos/EPA.h"
 #include "NewSystem/DelveDoor.h"
+
+DEFINE_LOG_CATEGORY(LogRoomPreset);
 
 ADungeonGenerator::ADungeonGenerator()
 {
@@ -22,103 +27,193 @@ void ADungeonGenerator::BeginPlay()
     SpawnDoorsAndLink();
 }
 
-// 1. 방 배치 알고리즘 (Random Walk + Dead End Attachment)
 void ADungeonGenerator::CreateLayout()
 {
     bool bValidLayout = false;
-    int32 LayoutAttempts = 0; // 무한 루프 방지용
+    int32 LayoutAttempts = 0;
 
-    // 보스 방이 무사히 배치될 때까지 레이아웃 생성을 반복합니다. (최대 100번)
     while (!bValidLayout && LayoutAttempts < 100)
     {
         LayoutAttempts++;
         RoomDataMap.Empty();
 
-        // 시작 방 (0,0)
+        // ================================================================================
+        // 1. 개수 및 배열 준비 (수정됨: 0으로 나누기 및 float 형변환 방지)
+        // ================================================================================
+        int32 RoomTotalCount = FMath::RandRange(RoomCountLimit.MinCount, RoomCountLimit.MaxCount);
+        int32 RoomCurrentCount = 0;
+
+        TMap<ERoomType, int32> TypedRoomTotalCounts;
+        TMap<ERoomType, int32> TypedRoomCurrentCounts;
+        TypedRoomTotalCounts[ERoomType::Start] = 1; 
+        
+        TSet<ERoomType> PlainRoomTypes;
+        TArray<ERoomType> MainRoomSpawnOrder;
+        int32 PlainRoomCount = RoomTotalCount - 1;
+        
+        for (auto& Pair: RoomPresets)
+        {
+            ERoomType Type = Pair.Key;
+            FRoomTypeConfig& Config = Pair.Value;
+
+            if (Type == ERoomType::Start) continue;
+
+            if (!Config.bIsConnectedByOneConnector)
+            {
+                if (!Config.bHasLimitCount)
+                {
+                    PlainRoomTypes.Add(Type);
+                    continue;
+                }
+
+                int32 Count = FMath::RandRange(Config.LimitCounts.MinCount, Config.LimitCounts.MaxCount);
+                TypedRoomTotalCounts.Add(Type, Count);
+
+                for (int i = 0; i < Count; i++)
+                {
+                    MainRoomSpawnOrder.Add(Type);
+                    PlainRoomCount--;
+                    if (PlainRoomCount <= 0) break;
+                }
+                if (PlainRoomCount <= 0) break;
+            }
+        }
+
+        if (PlainRoomCount > 0 && PlainRoomTypes.Num() > 0)
+        {
+            int32 RoomTypeMaxNumber = 0;
+            for (auto Type: PlainRoomTypes) RoomTypeMaxNumber += RoomPresets[Type].SpawnWeight;
+
+            if (RoomTypeMaxNumber > 0) // 0으로 나누기 방지
+            {
+                int32 RemainPlainRoomCount = PlainRoomCount;
+                for (auto Type: PlainRoomTypes)
+                {
+                    // (float) 캐스팅을 통해 정확한 비율 계산
+                    int32 Count = FMath::Min(FMath::CeilToInt32((float)RoomPresets[Type].SpawnWeight * PlainRoomCount / RoomTypeMaxNumber), RemainPlainRoomCount);
+                    
+                    TypedRoomTotalCounts.Add(Type, Count);
+                    for (int i = 0; i < Count; i++) MainRoomSpawnOrder.Add(Type);
+                    RemainPlainRoomCount -= Count;
+                }
+            }
+        }
+        Algo::RandomShuffle(MainRoomSpawnOrder);
+
+        // ================================================================================
+        // 2. 중심에 시작방 배치
+        // ================================================================================
         FIntPoint CurrentCoord(0, 0);
-        RoomDataMap.Add(CurrentCoord, FRoomStatus(CurrentCoord, ERoomType::Start));
+        RoomDataMap.Add(CurrentCoord, FRoomStatus(CurrentCoord, ERoomType::Start, GetRandomRoomClass(ERoomType::Start)));
+        TypedRoomCurrentCounts.Add(ERoomType::Start, 1);
 
-        int32 SpecialRoomCount = 2; // Boss, NPC
-        int32 TargetNormalRooms = FMath::Max(1, MaxRoomCount - SpecialRoomCount);
+        TArray<FIntPoint> Directions = { FIntPoint(1, 0), FIntPoint(-1, 0), FIntPoint(0, 1), FIntPoint(0, -1) };
 
-        int32 MaxIterations = TargetNormalRooms * 10;
-        int32 CurrentIterations = 0;
+        // ================================================================================
+        // 3. 주 뼈대 방을 생성 (수정됨: BFS 큐 로직 완벽 적용)
+        // ================================================================================
+        TQueue<FIntPoint> TraversingQueue;
+        TraversingQueue.Enqueue(CurrentCoord);
 
-        // 1단계: 목표 개수만큼 일반 방(Normal)을 랜덤 워크로 생성
-        while (RoomDataMap.Num() < TargetNormalRooms && CurrentIterations < MaxIterations)
+        // MainRoomSpawnOrder에 남은 방이 있는 동안 루프
+        while (MainRoomSpawnOrder.Num() > 0)
         {
-            CurrentIterations++;
-
-            int32 RandDir = FMath::RandRange(0, 3);
-            FIntPoint NextCoord = CurrentCoord;
-
-            switch (RandDir)
+            FIntPoint ParentCoord;
+            
+            // 큐가 비었는데 남은 방이 있다면(사방이 꽉 막힘), 레이아웃 실패 처리 후 다시 시도
+            if (!TraversingQueue.Dequeue(ParentCoord)) 
             {
-                case 0: NextCoord.X += 1; break; // Forward
-                case 1: NextCoord.Y += 1; break; // Right
-                case 2: NextCoord.X -= 1; break; // Backward
-                case 3: NextCoord.Y -= 1; break; // Left
+                break; // while을 빠져나가면 배열이 남아있으므로 Layout 실패 처리됨
             }
 
-            if (!RoomDataMap.Contains(NextCoord))
+            int32 PossibleSpawnable = 4 - GetNeighborCount(ParentCoord);
+            if (PossibleSpawnable <= 0) continue;
+
+            // 부모 방에서 몇 개의 가지를 칠지 결정
+            int32 Branches = FMath::RandRange(1, PossibleSpawnable);
+            int32 SpawnedThisTurn = 0;
+
+            Algo::RandomShuffle(Directions);
+
+            for (const FIntPoint& Dir: Directions)
             {
-                RoomDataMap.Add(NextCoord, FRoomData(NextCoord, ERoomType::Normal));
+                if (SpawnedThisTurn >= Branches) break;          // 이번 턴의 할당량 채움
+                if (MainRoomSpawnOrder.Num() == 0) break;       // 더 이상 스폰할 방이 없음
+
+                FIntPoint NeighborCoord = ParentCoord + Dir;
+                if (RoomDataMap.Contains(NeighborCoord)) continue;
+
+                // [핵심] 배열의 끝에서 방 타입을 하나 꺼냄 (Pop)
+                ERoomType NextType = MainRoomSpawnOrder.Pop(false);
+
+                // 방 배치
+                RoomDataMap.Add(NeighborCoord, FRoomStatus(NeighborCoord, NextType, GetRandomRoomClass(NextType)));
+                
+                int32& CurrentTypeCount = TypedRoomCurrentCounts.FindOrAdd(NextType);
+                CurrentTypeCount++;
+
+                TraversingQueue.Enqueue(NeighborCoord);
+                SpawnedThisTurn++;
             }
-            CurrentCoord = NextCoord; 
         }
 
-        // 2단계: [필수] 보스 방 부착 시도
-        // 막다른 길이 없어서 실패하면 false가 반환되며, 루프가 처음부터 다시 돕니다!
-        bValidLayout = AttachSpecialRoom(ERoomType::Boss, true);
+        // 큐가 막혀서 배열을 다 못 비웠다면 다시 생성 (bValidLayout은 여전히 false)
+        if (MainRoomSpawnOrder.Num() > 0) continue;
 
-        if (bValidLayout)
+        // ================================================================================
+        // 4. 특수 방들을 생성 (수정됨: MinCount 반복 적용)
+        // ================================================================================
+        bValidLayout = true;
+        for (auto& Pair : RoomPresets)
         {
-            // 3단계: [선택] NPC 방 부착 시도 (기본값 false를 사용하여 랜덤 막다른 길에 배치)
-            AttachSpecialRoom(ERoomType::NPC);
-        }
-    }
+            ERoomType CurrentType = Pair.Key;
+            FRoomTypeConfig& Config = Pair.Value;
 
-    if (!bValidLayout)
-    {
-        UE_LOG(LogTemp, Error, TEXT("DungeonGenerator: 100번 시도했지만 보스 방을 배치할 수 없었습니다."));
-    }
-    else
-    {
-        UE_LOG(LogTemp, Log, TEXT("DungeonGenerator: 던전 레이아웃 생성 성공!"));
+            if (CurrentType == ERoomType::Normal || CurrentType == ERoomType::Start) continue;
+            if (!Config.bIsConnectedByOneConnector) continue; // 이미 뼈대에서 만든 방은 제외
+
+            int32 SpawnCount = Config.bHasLimitCount ? Config.LimitCounts.MinCount : 1;
+            
+            for (int i = 0; i < SpawnCount; i++)
+            {
+                if (!AttachSpecialRoom(CurrentType))
+                {
+                    if (CurrentType == ERoomType::Boss) bValidLayout = false;
+                }
+            }
+        }
     }
 }
 
-// [수정] 성공 시 true, 실패 시 false 반환
-// [수정] 가장 먼 거리를 계산하는 로직 추가
-bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType, bool bUseFurthest)
+bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType)
 {
-    TArray<FIntPoint> PotentialSpots;
+    // 1. 해당 타입의 설정 가져오기
+    if (!RoomPresets.Contains(RoomType)) return false;
+    const FRoomTypeConfig& Config = RoomPresets[RoomType];
 
-    // 1. 주변에 빈자리가 있고, 그 빈자리의 이웃이 딱 1개(막다른 길)인 곳 탐색
+    // [안전장치] 만약 이 함수가 여러 번 불려서 MaxCount를 넘기려 한다면 차단
+    if (Config.bHasLimitCount)
+    {
+        int32 CurrentCount = 0;
+        for (const auto& Elem : RoomDataMap) { if (Elem.Value.Type == RoomType) CurrentCount++; }
+        if (CurrentCount >= Config.LimitCounts.MaxCount) return false;
+    }
+
+    TArray<FIntPoint> PotentialSpots;
+    
+    // 2. 후보지 검색 (막다른 길 찾기)
     for (const auto& Elem : RoomDataMap)
     {
-        // =============================================================
-        // [핵심 수정] 보스 방이나 NPC 방을 '징검다리'로 삼지 않도록 차단!
-        // 오직 일반 방(Normal)이나 시작 방(Start) 옆에만 특수 방이 붙을 수 있습니다.
-        // =============================================================
-        if (Elem.Value.Type == ERoomType::Boss || Elem.Value.Type == ERoomType::NPC)
-        {
-            continue;
-        }
+        if (Elem.Value.Type != ERoomType::Normal && Elem.Value.Type != ERoomType::Start) continue;
 
         FIntPoint Coord = Elem.Key;
-        
         FIntPoint Neighbors[4] = {
-            FIntPoint(Coord.X + 1, Coord.Y),
-            FIntPoint(Coord.X - 1, Coord.Y),
-            FIntPoint(Coord.X, Coord.Y + 1),
-            FIntPoint(Coord.X, Coord.Y - 1)
+            FIntPoint(Coord.X + 1, Coord.Y), FIntPoint(Coord.X - 1, Coord.Y),
+            FIntPoint(Coord.X, Coord.Y + 1), FIntPoint(Coord.X, Coord.Y - 1)
         };
 
         for (FIntPoint NeighborCoord : Neighbors)
         {
-            // 이 빈 자리(NeighborCoord)의 이웃이 딱 1개라는 뜻은,
-            // 방금 걸러내고 남은 '일반 방'만이 유일한 이웃이라는 뜻이 보장됩니다.
             if (!RoomDataMap.Contains(NeighborCoord) && GetNeighborCount(NeighborCoord) == 1)
             {
                 PotentialSpots.AddUnique(NeighborCoord);
@@ -126,35 +221,48 @@ bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType, bool bUseFurthest)
         }
     }
 
-    // 2. 후보지 중 하나를 선택하여 배치
+    // 3. 후보지 중 선택
     if (PotentialSpots.Num() > 0)
     {
         int32 SelectedIndex = 0;
-
-        if (bUseFurthest)
+        
+        if (Config.bFurthestSpawn)
         {
-            float MaxDistanceSq = -1.0f; 
+            int32 MaxDistance = -1;
+            TArray<int32> MaxDistanceIndices; // 최대 거리가 동일한 후보들을 담을 배열
+
             for (int32 i = 0; i < PotentialSpots.Num(); ++i)
             {
-                FIntPoint Spot = PotentialSpots[i];
-                float DistSq = FMath::Square((float)Spot.X) + FMath::Square((float)Spot.Y);
+                // [개선] 맨해튼 거리(Manhattan Distance) 사용: 그리드 맵에서의 실제 체감 거리
+                int32 GridDist = FMath::Abs(PotentialSpots[i].X) + FMath::Abs(PotentialSpots[i].Y);
                 
-                if (DistSq > MaxDistanceSq)
+                if (GridDist > MaxDistance)
                 {
-                    MaxDistanceSq = DistSq;
-                    SelectedIndex = i; 
+                    MaxDistance = GridDist;
+                    MaxDistanceIndices.Empty(); // 더 먼 곳을 찾았으니 기존 목록 초기화
+                    MaxDistanceIndices.Add(i);
+                }
+                else if (GridDist == MaxDistance)
+                {
+                    MaxDistanceIndices.Add(i); // 거리가 같다면 후보군에 추가
                 }
             }
+
+            // [개선] 최고 거리가 여러 개라면 그 중 랜덤 선택 (편향 방지)
+            int32 RandomChoice = FMath::RandRange(0, MaxDistanceIndices.Num() - 1);
+            SelectedIndex = MaxDistanceIndices[RandomChoice];
         }
         else
         {
             SelectedIndex = FMath::RandRange(0, PotentialSpots.Num() - 1);
         }
 
-        RoomDataMap.Add(PotentialSpots[SelectedIndex], FRoomData(PotentialSpots[SelectedIndex], RoomType));
+        FIntPoint FinalCoord = PotentialSpots[SelectedIndex];
+        TSubclassOf<ARoomBase> SelectedClass = GetRandomRoomClass(RoomType);
+        
+        RoomDataMap.Add(FinalCoord, FRoomStatus(FinalCoord, RoomType, SelectedClass));
         return true; 
     }
-    
     return false; 
 }
 
@@ -181,17 +289,23 @@ void ADungeonGenerator::SpawnRooms()
     {
         FIntPoint Coord = Elem.Key;
         ERoomType Type = Elem.Value.Type;
-        TSubclassOf<ARoomBase> SelectedClass = GetRandomRoomClass(Type);
+        
+        // [수정 1] Layout 단계에서 미리 결정해 둔 방 클래스를 그대로 사용합니다.
+        TSubclassOf<ARoomBase> SelectedClass = Elem.Value.RoomClass;
 
         if (!SelectedClass) continue;
 
         FVector SpawnLocation(Coord.X * RoomGridSize, Coord.Y * RoomGridSize, 0.0f);
         FRotator SpawnRotation = FRotator::ZeroRotator;
 
-        // =============================================================
-        // [신규] 특수 방(Boss, NPC) 회전 계산 로직
-        // =============================================================
-        if (Type == ERoomType::Boss || Type == ERoomType::NPC)
+        // [수정 2] 하드코딩(Boss, NPC)을 제거하고, Preset의 속성(bIsConnectedByOneConnector)으로 막다른 방인지 판단합니다.
+        bool bIsDeadEndRoom = false;
+        if (RoomPresets.Contains(Type) && Type != ERoomType::Start)
+        {
+            bIsDeadEndRoom = RoomPresets[Type].bIsConnectedByOneConnector;
+        }
+
+        if (bIsDeadEndRoom)
         {
             // 이 방과 연결된 유일한 이웃(부모) 찾기
             FIntPoint Neighbors[4] = {
@@ -216,22 +330,53 @@ void ADungeonGenerator::SpawnRooms()
         }
 
         ARoomBase* NewRoom = GetWorld()->SpawnActor<ARoomBase>(SelectedClass, SpawnLocation, SpawnRotation, SpawnParams);
-        if (NewRoom) SpawnedRoomMap.Add(Coord, NewRoom);
+        if (NewRoom)
+        {
+            SpawnedRoomMap.Add(Coord, NewRoom);
+
+            // [유지] 생성된 방의 플레이어 진입 이벤트를 구독합니다.
+            NewRoom->OnPlayerEnteredRoom.AddDynamic(this, &ADungeonGenerator::HandleRoomExplored);
+        }
+    }
+}
+
+void ADungeonGenerator::HandleRoomExplored(ARoomBase* ExploredRoom)
+{
+    if (!ExploredRoom) return;
+
+    // 1. 역으로 좌표 찾기 (SpawnedRoomMap에서 찾거나, 방 자체가 좌표를 들고 있게 수정 가능)
+    const FIntPoint* FoundCoord = SpawnedRoomMap.FindKey(ExploredRoom);
+    if (FoundCoord)
+    {
+        CurrentPlayerCoordinate = *FoundCoord;
+        
+        // 2. RoomDataMap의 상태 갱신
+        if (RoomDataMap.Contains(CurrentPlayerCoordinate))
+        {
+            RoomDataMap[CurrentPlayerCoordinate].bIsPlayerVisited = true;
+        }
+
+        UE_LOG(LogTemp, Log, TEXT("DungeonGenerator: Player is now in Room %s"), *CurrentPlayerCoordinate.ToString());
+
+        // 3. TODO: 여기서 UI(미니맵)에 갱신 명령을 내립니다.
     }
 }
 
 void ADungeonGenerator::SpawnDoorsAndLink()
 {
-    if (!DoorClass) return;
+    // 기존의 if (!DoorClass) return; 삭제 -> 방의 Spawner가 직접 결정하므로 불필요
 
     for (auto& Elem : SpawnedRoomMap)
     {
         FIntPoint MyCoord = Elem.Key;
         ARoomBase* MyRoom = Elem.Value;
 
-        // 특수 방인지 확인 (RoomDataMap에서 타입 체크 필요하므로 아래처럼 접근)
         ERoomType MyType = RoomDataMap[MyCoord].Type;
-        bool bIsSpecial = (MyType == ERoomType::Boss || MyType == ERoomType::NPC);
+        bool bIsMyRoomSpecial = false;
+        if (RoomPresets.Contains(MyType) && MyType != ERoomType::Start)
+        {
+            bIsMyRoomSpecial = RoomPresets[MyType].bIsConnectedByOneConnector;
+        }
 
         ESotaDirection CheckDirs[] = { ESotaDirection::Forward, ESotaDirection::Right };
 
@@ -243,44 +388,39 @@ void ADungeonGenerator::SpawnDoorsAndLink()
             ARoomBase* NeighborRoom = SpawnedRoomMap[NeighborCoord];
             ERoomType NeighborType = RoomDataMap[NeighborCoord].Type;
 
-            // =============================================================
-            // [핵심 로직] 특수 방 통로 제한
-            // =============================================================
-            
-            // 1. 내가 특수 방인데, 현재 검사하는 방향이 내 로컬 Forward(+X)가 아니면 문 안 만듦
-            if (bIsSpecial)
+            bool bNeighborIsSpecial = false;
+            if (RoomPresets.Contains(NeighborType) && NeighborType != ERoomType::Start)
             {
-                // 월드 좌표계의 Dir가 내 로컬 Forward인지 확인
+                bNeighborIsSpecial = RoomPresets[NeighborType].bIsConnectedByOneConnector;
+            }
+
+            // [특수방 로직 유지]
+            if (bIsMyRoomSpecial)
+            {
                 FVector WorldDirVec = FVector(NeighborCoord.X - MyCoord.X, NeighborCoord.Y - MyCoord.Y, 0.0f);
                 FVector LocalForwardVec = MyRoom->GetActorForwardVector();
-                
                 if (!WorldDirVec.GetSafeNormal().Equals(LocalForwardVec, 0.1f)) continue;
             }
 
-            // 2. 이웃이 특수 방인데, 그 방의 로컬 Forward가 나를 향하고 있지 않으면 문 안 만듦
-            if (NeighborType == ERoomType::Boss || NeighborType == ERoomType::NPC)
+            if (bNeighborIsSpecial)
             {
                 FVector WorldToMeVec = FVector(MyCoord.X - NeighborCoord.X, MyCoord.Y - NeighborCoord.Y, 0.0f);
                 FVector NeighborForwardVec = NeighborRoom->GetActorForwardVector();
-
                 if (!WorldToMeVec.GetSafeNormal().Equals(NeighborForwardVec, 0.1f)) continue;
             }
 
-            // --- 이하 문 스폰 및 연결 로직 동일 ---
-            FVector DoorLoc = (MyRoom->GetActorLocation() + NeighborRoom->GetActorLocation()) * 0.5f;
-            FRotator DoorRot = (Dir == ESotaDirection::Right) ? FRotator(0, 90, 0) : FRotator::ZeroRotator;
+            // =============================================================
+            // [변경됨] ConnectorSpawner를 통한 스폰 및 연결 로직
+            // =============================================================
+            
+            // 1. MyRoom을 주체로 삼아, 해당 방향의 Spawner 설정대로 Connector 스폰
+            ARoomConnector* SpawnedConnector = MyRoom->SpawnConnector(Dir);
 
-            ADelveDoor* NewDoor = GetWorld()->SpawnActor<ADelveDoor>(DoorClass, DoorLoc, DoorRot);
-            if (NewDoor)
+            if (SpawnedConnector)
             {
-                // MyRoom 입장
-                MyRoom->Doors.Add(Dir, NewDoor);
-                MyRoom->OpenWall(Dir);
-
-                // NeighborRoom 입장
+                // 2. 스폰 성공 시, 이웃 방에게 이 커넥터를 공유하고 등록시킴
                 ESotaDirection OpDir = GetOppositeDirection(Dir);
-                NeighborRoom->Doors.Add(OpDir, NewDoor);
-                NeighborRoom->OpenWall(OpDir);
+                NeighborRoom->RegisterConnector(OpDir, SpawnedConnector);
             }
         }
     }

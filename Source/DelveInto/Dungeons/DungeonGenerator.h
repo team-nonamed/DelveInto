@@ -9,6 +9,8 @@
 #include "Structs/LimitCounts.h"
 #include "DungeonGenerator.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogRoomPreset, Display, All);
+
 class ARoomBase;
 class ADelveDoor;
 
@@ -24,15 +26,18 @@ struct FRoomTypeConfig
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     bool bHasLimitCount;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="!bHasLimitCount", EditConditionHides, ClampMin="1", UIMin="1"))
+    int32 SpawnWeight = 1;
     
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bHasLimitCount"))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bHasLimitCount", EditConditionHides))
     FLimitCounts LimitCounts;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bHasLimitCount", EditConditionHides))
+    bool bIsConnectedByOneConnector = false;
     
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    bool FurthestSpawn;
-    
-    UPROPERTY(EditAnywhere, BlueprintReadOnly)
-    bool IsConnectedByOneConnector;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bIsConnectedByOneConnector", EditConditionHides))
+    bool bFurthestSpawn = false;
 };
 
 UCLASS()
@@ -46,11 +51,8 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-#pragma region Properties
-
-#pragma region 
-    
-#pragma endregion
+protected:
+    int32 GetCurrentRoomCount() const { return RoomDataMap.Num(); }
     
 public:
     // =================================================================
@@ -58,7 +60,7 @@ public:
     // =================================================================
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon Config")
-    int32 MaxRoomCount = 15;
+    FLimitCounts RoomCountLimit;
 
     // 방 간격 (RoomBase의 크기)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon Config")
@@ -92,7 +94,7 @@ private:
     void CreateLayout();
 
     // [수정] bUseFurthest 옵션 추가 (기본값은 false)
-    bool AttachSpecialRoom(ERoomType RoomType, bool bUseFurthest = false);
+    bool AttachSpecialRoom(ERoomType RoomType);
     
     // [신규] 특정 좌표 주변에 이미 배치된 방이 몇 개인지 반환
     int32 GetNeighborCount(FIntPoint Coord);
@@ -112,4 +114,13 @@ private:
     ESotaDirection GetOppositeDirection(ESotaDirection Direction);
 
     TSubclassOf<ARoomBase> GetRandomRoomClass(ERoomType Type);
+
+protected:
+    /** 방에서 보낸 이벤트를 처리할 함수 */
+    UFUNCTION()
+    void HandleRoomExplored(ARoomBase* ExploredRoom);
+
+    /** 현재 플레이어가 위치한 방의 좌표 (미니맵 표시용) */
+    UPROPERTY(BlueprintReadOnly, Category = "Dungeon State")
+    FIntPoint CurrentPlayerCoordinate;
 };
