@@ -1,43 +1,46 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
 #include "RoomStatus.h"
 #include "RoomType.h"
-#include "GameFramework/Actor.h"
 #include "Structs/LimitCounts.h"
+#include "Types/Direction.h"
 #include "DungeonGenerator.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogRoomPreset, Display, All);
-
 class ARoomBase;
-class ADelveDoor;
+class ARoomConnector;
 
+// 미니맵 업데이트를 위한 델리게이트 선언
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerMovedRoom);
 
 USTRUCT(BlueprintType)
 struct FRoomTypeConfig
 {
     GENERATED_BODY()
 
-    // 에디터에서 여러 개의 방 BP를 넣을 수 있는 배열
+    // 스폰할 방 클래스 후보군
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TArray<TSubclassOf<ARoomBase>> Variations;
 
+    // 최대/최소 개수 제한 여부
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
-    bool bHasLimitCount;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="!bHasLimitCount", EditConditionHides, ClampMin="1", UIMin="1"))
-    int32 SpawnWeight = 1;
+    bool bHasLimitCount = false;
     
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bHasLimitCount", EditConditionHides))
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bHasLimitCount"))
     FLimitCounts LimitCounts;
-
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bHasLimitCount", EditConditionHides))
-    bool bIsConnectedByOneConnector = false;
     
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, meta=(EditCondition="bIsConnectedByOneConnector", EditConditionHides))
+    // 가장 먼 곳에 스폰할지 여부 (주로 보스 방)
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
     bool bFurthestSpawn = false;
+    
+    // 문이 1개만 달리는 특수 방(막다른 방)인지 여부
+    UPROPERTY(EditAnywhere, BlueprintReadOnly)
+    bool bIsConnectedByOneConnector = false;
+
+    // 일반 방 생성 시 가중치 (비율 계산용)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    int32 SpawnWeight = 1;
 };
 
 UCLASS()
@@ -51,9 +54,6 @@ public:
 protected:
     virtual void BeginPlay() override;
 
-protected:
-    int32 GetCurrentRoomCount() const { return RoomDataMap.Num(); }
-    
 public:
     // =================================================================
     // 설정 변수
@@ -62,65 +62,63 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon Config")
     FLimitCounts RoomCountLimit;
 
-    // 방 간격 (RoomBase의 크기)
+    // 방 간격 (RoomBase의 Size와 동일하게 맞추세요. 예: 6300.0f)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon Config")
     float RoomGridSize = 6300.0f;
 
-    // 스폰할 방 클래스 (BP_RoomBase)
+    // 방 타입별 설정 및 프리셋
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon Config")
     TMap<ERoomType, FRoomTypeConfig> RoomPresets;
 
-    // 스폰할 문 클래스 (BP_DelveDoor)
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dungeon Config")
-    TSubclassOf<ADelveDoor> DoorClass;
+    // =================================================================
+    // 미니맵 연동 (데이터 노출)
+    // =================================================================
+
+    /** 플레이어가 새로운 방에 진입했을 때 미니맵을 갱신하기 위한 델리게이트 */
+    UPROPERTY(BlueprintAssignable, Category = "Dungeon|Events")
+    FOnPlayerMovedRoom OnPlayerMovedRoom;
+
+    UFUNCTION(BlueprintPure, Category = "Dungeon|Data")
+    const TMap<FIntPoint, FRoomStatus>& GetRoomDataMap() const { return RoomDataMap; }
+
+    UFUNCTION(BlueprintPure, Category = "Dungeon|Data")
+    FIntPoint GetCurrentPlayerCoordinate() const { return CurrentPlayerCoordinate; }
 
 private:
     // =================================================================
     // 내부 데이터 관리
     // =================================================================
 
-    // 좌표 : 방 데이터 (논리적 데이터)
+    // 논리적 맵 데이터
+    UPROPERTY()
     TMap<FIntPoint, FRoomStatus> RoomDataMap;
 
-    // 좌표 : 실제 스폰된 방 액터 (물리적 액터)
+    // 실제 스폰된 방 액터
     UPROPERTY()
     TMap<FIntPoint, ARoomBase*> SpawnedRoomMap;
+
+    // 현재 플레이어가 위치한 좌표
+    FIntPoint CurrentPlayerCoordinate;
 
     // =================================================================
     // 생성 로직 함수
     // =================================================================
     
-    // 1. 데이터 상에서 방 배치 (알고리즘)
     void CreateLayout();
-
-    // [수정] bUseFurthest 옵션 추가 (기본값은 false)
     bool AttachSpecialRoom(ERoomType RoomType);
-    
-    // [신규] 특정 좌표 주변에 이미 배치된 방이 몇 개인지 반환
-    int32 GetNeighborCount(FIntPoint Coord);
-
-
-    
-    // 2. 실제 방 액터 스폰
     void SpawnRooms();
-
-    // 3. 방과 방 사이 문 스폰 및 연결
     void SpawnDoorsAndLink();
 
-    // 헬퍼: 특정 방향의 좌표 구하기
-    FIntPoint GetNeighborCoordinate(FIntPoint Current, ESotaDirection Direction);
+    // =================================================================
+    // 헬퍼 함수
+    // =================================================================
     
-    // 헬퍼: 반대 방향 구하기 (Forward <-> Backward)
+    int32 GetNeighborCount(FIntPoint Coord);
+    FIntPoint GetNeighborCoordinate(FIntPoint Current, ESotaDirection Direction);
     ESotaDirection GetOppositeDirection(ESotaDirection Direction);
-
     TSubclassOf<ARoomBase> GetRandomRoomClass(ERoomType Type);
-
-protected:
-    /** 방에서 보낸 이벤트를 처리할 함수 */
+    
+    // 플레이어가 방에 들어왔을 때 호출될 핸들러
     UFUNCTION()
     void HandleRoomExplored(ARoomBase* ExploredRoom);
-
-    /** 현재 플레이어가 위치한 방의 좌표 (미니맵 표시용) */
-    UPROPERTY(BlueprintReadOnly, Category = "Dungeon State")
-    FIntPoint CurrentPlayerCoordinate;
 };

@@ -1,7 +1,4 @@
-﻿ // Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "RoomBase.h"
+﻿#include "RoomBase.h"
 
 #include "Components/ArrowComponent.h"
 #include "Components/BoxComponent.h"
@@ -11,174 +8,164 @@
 
 #if WITH_EDITOR
 #pragma region Display Creation
-
 void ARoomBase::CreateArrowDisplayHolder()
 {
-	ArrowDisplayHolder = CreateDefaultSubobject<USceneComponent>(TEXT("Arrow Display Holder"));
-	ArrowDisplayHolder->SetupAttachment(RootComponent);
-	ArrowDisplayHolder->SetHiddenInGame(true);
-	ArrowDisplayHolder->bIsEditorOnly = true;
+    ArrowDisplayHolder = CreateDefaultSubobject<USceneComponent>(TEXT("Arrow Display Holder"));
+    ArrowDisplayHolder->SetupAttachment(RootComponent);
+    ArrowDisplayHolder->SetHiddenInGame(true);
+    ArrowDisplayHolder->bIsEditorOnly = true;
 }
 
 void ARoomBase::CreateRegionDisplayHolder()
 {
-	RegionDisplayHolder = CreateDefaultSubobject<USceneComponent>(TEXT("Region Box Display Holder"));
-	RegionDisplayHolder->SetupAttachment(RootComponent);
-	RegionDisplayHolder->SetHiddenInGame(true);
-	RegionDisplayHolder->bIsEditorOnly = true;
+    RegionDisplayHolder = CreateDefaultSubobject<USceneComponent>(TEXT("Region Box Display Holder"));
+    RegionDisplayHolder->SetupAttachment(RootComponent);
+    RegionDisplayHolder->SetHiddenInGame(true);
+    RegionDisplayHolder->bIsEditorOnly = true;
+}
+
+void ARoomBase::CreateConnectorDisplayHolder()
+{
+    ConnectorDisplayHolder = CreateDefaultSubobject<USceneComponent>(TEXT("Connector Display Holder"));
+    ConnectorDisplayHolder->SetupAttachment(RootComponent);
+    ConnectorDisplayHolder->SetHiddenInGame(true);
+    ConnectorDisplayHolder->bIsEditorOnly = true;
 }
 
 void ARoomBase::CreateFloorRegionDisplay()
 {
-	FloorRegionDisplay = CreateDefaultSubobject<UBoxComponent>(TEXT("Floor Region Display"));
-	FloorRegionDisplay->SetupAttachment(RegionDisplayHolder);
-	FloorRegionDisplay->SetCollisionProfileName(TEXT("NoCollision"));
-	FloorRegionDisplay->SetGenerateOverlapEvents(false);
-	FloorRegionDisplay->SetHiddenInGame(true);
-	FloorRegionDisplay->bIsEditorOnly = true;
-	FloorRegionDisplay->ShapeColor = FColor::Cyan;
-	FloorRegionDisplay->SetLineThickness(10.0f);
+    FloorRegionDisplay = CreateDefaultSubobject<UBoxComponent>(TEXT("Floor Region Display"));
+    FloorRegionDisplay->SetupAttachment(RegionDisplayHolder);
+    FloorRegionDisplay->SetCollisionProfileName(TEXT("NoCollision"));
+    FloorRegionDisplay->SetGenerateOverlapEvents(false);
+    FloorRegionDisplay->SetHiddenInGame(true);
+    FloorRegionDisplay->bIsEditorOnly = true;
+    FloorRegionDisplay->ShapeColor = FColor::Cyan;
+    FloorRegionDisplay->SetLineThickness(10.0f);
 }
 
 void ARoomBase::CreateDirectionArrowDisplay(ESotaDirection Direction, FColor Color)
 {
-	FString DirNameString = USotaDirectionUtil::GetDirectionName(Direction);
-	FName ComponentName = FName(*FString::Printf(TEXT("%s Direction Arrow"), *DirNameString));
+    FString DirNameString = USotaDirectionUtil::GetDirectionName(Direction);
+    FName ComponentName = FName(*FString::Printf(TEXT("%s Direction Arrow"), *DirNameString));
 
-	// 2. 컴포넌트 생성 및 설정
-	UArrowComponent* Arrow = CreateDefaultSubobject<UArrowComponent>(ComponentName);
-    
-	if (Arrow)
-	{
-		Arrow->SetupAttachment(ArrowDisplayHolder);
-		Arrow->SetCollisionProfileName(TEXT("NoCollision"));
-		Arrow->SetHiddenInGame(true);
-		Arrow->bIsEditorOnly = true;
-		Arrow->ArrowColor = Color;
-		Arrow->ArrowSize = 10.0f;
-
-		// 3. TMap에 등록
-		DirectionArrowDisplays.Add(Direction, Arrow);
-	}
+    UArrowComponent* Arrow = CreateDefaultSubobject<UArrowComponent>(ComponentName);
+    if (Arrow)
+    {
+       Arrow->SetupAttachment(ArrowDisplayHolder);
+       Arrow->SetCollisionProfileName(TEXT("NoCollision"));
+       Arrow->SetHiddenInGame(true);
+       Arrow->bIsEditorOnly = true;
+       Arrow->ArrowColor = Color;
+       Arrow->ArrowSize = 10.0f;
+       DirectionArrowDisplays.Add(Direction, Arrow);
+    }
 }
 
 void ARoomBase::CreateDirectionArrowDisplays()
 {
-	CreateDirectionArrowDisplay(ESotaDirection::Forward, FColor::Cyan);
-	CreateDirectionArrowDisplay(ESotaDirection::Right, FColor::Yellow);
-	CreateDirectionArrowDisplay(ESotaDirection::Left, FColor::Yellow);
-	CreateDirectionArrowDisplay(ESotaDirection::Backward, FColor::Yellow);
-	CreateDirectionArrowDisplay(ESotaDirection::Center, FColor::Cyan);
+    CreateDirectionArrowDisplay(ESotaDirection::Forward, FColor::Cyan);
+    CreateDirectionArrowDisplay(ESotaDirection::Right, FColor::Yellow);
+    CreateDirectionArrowDisplay(ESotaDirection::Left, FColor::Yellow);
+    CreateDirectionArrowDisplay(ESotaDirection::Backward, FColor::Yellow);
+    CreateDirectionArrowDisplay(ESotaDirection::Center, FColor::Cyan);
 }
-
 
 void ARoomBase::CreateConnectorRegionDisplay(ESotaDirection Direction, FColor Color)
 {
-	// 1. 이름 포맷팅: <Forward> Direction Arrow 형식
-	FString DirNameString = USotaDirectionUtil::GetDirectionName(Direction);
-	FName Name = FName(*FString::Printf(TEXT("%s Connector Region Display"), *DirNameString));
-	
-	UBoxComponent* Box = CreateDefaultSubobject<UBoxComponent>(Name);
-
-	if (Box)
-	{
-		Box->SetupAttachment(RegionDisplayHolder);
-		Box->SetCollisionProfileName(TEXT("NoCollision"));
-		Box->SetGenerateOverlapEvents(false);
-		Box->SetHiddenInGame(true);
-		Box->bIsEditorOnly = true;
-		Box->ShapeColor = Color;
-		Box->SetLineThickness(10.0f);
-
-		// TMap에 즉시 등록
-		ConnectorRegionDisplays.Add(Direction, Box);
-	}
+    FString DirNameString = USotaDirectionUtil::GetDirectionName(Direction);
+    FName Name = FName(*FString::Printf(TEXT("%s Connector Region Display"), *DirNameString));
+    
+    UBoxComponent* Box = CreateDefaultSubobject<UBoxComponent>(Name);
+    if (Box)
+    {
+       Box->SetupAttachment(RegionDisplayHolder);
+       Box->SetCollisionProfileName(TEXT("NoCollision"));
+       Box->SetGenerateOverlapEvents(false);
+       Box->SetHiddenInGame(true);
+       Box->bIsEditorOnly = true;
+       Box->ShapeColor = Color;
+       Box->SetLineThickness(10.0f);
+       ConnectorRegionDisplays.Add(Direction, Box);
+    }
 }
 
 void ARoomBase::CreateConnectorRegionDisplays()
 {
-	CreateConnectorRegionDisplay(ESotaDirection::Forward, FColor::Yellow);
-	CreateConnectorRegionDisplay(ESotaDirection::Right, FColor::Yellow);
-	CreateConnectorRegionDisplay(ESotaDirection::Left, FColor::Yellow);
-	CreateConnectorRegionDisplay(ESotaDirection::Backward, FColor::Cyan);
+    CreateConnectorRegionDisplay(ESotaDirection::Forward, FColor::Yellow);
+    CreateConnectorRegionDisplay(ESotaDirection::Right, FColor::Yellow);
+    CreateConnectorRegionDisplay(ESotaDirection::Left, FColor::Yellow);
+    CreateConnectorRegionDisplay(ESotaDirection::Backward, FColor::Cyan);
 }
 
+void ARoomBase::CreateConnectorDisplay(ESotaDirection Direction)
+{
+    FString DirNameString = USotaDirectionUtil::GetDirectionName(Direction);
+    FName MeshName = FName(*FString::Printf(TEXT("%s Connector Display"), *DirNameString));
+    ConnectorDisplays.Add(Direction, CreateDefaultSubobject<UStaticMeshComponent>(MeshName));
+    ConnectorDisplays[Direction]->SetupAttachment(ConnectorDisplayHolder);
+    ConnectorDisplays[Direction]->bIsEditorOnly = true;
+    ConnectorDisplays[Direction]->SetHiddenInGame(true);
+    ConnectorDisplays[Direction]->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void ARoomBase::CreateConnectorDisplays()
+{
+    ESotaDirection Dirs[] = {ESotaDirection::Forward, ESotaDirection::Backward, ESotaDirection::Left, ESotaDirection::Right};
+    for (ESotaDirection Dir : Dirs) CreateConnectorDisplay(Dir);
+}
 #pragma endregion
 #endif
 
-#pragma region Connector Spawner Creation Methods
-void ARoomBase::CreateConnectorSpawner(ESotaDirection Direction, FName Name)
-{
-	UConnectorSpawner* Spawner = CreateDefaultSubobject<UConnectorSpawner>(Name);
-	Spawner->SetupAttachment(RootComponent);
-	ConnectorSpawners.Add(Direction, Spawner);
-}
-
-void ARoomBase::CreateConnectorSpawners()
-{
-	CreateConnectorSpawner(ESotaDirection::Forward, TEXT("Forward Spawner"));
-	CreateConnectorSpawner(ESotaDirection::Backward, TEXT("Backward Spawner"));
-	CreateConnectorSpawner(ESotaDirection::Right, TEXT("Right Spawner"));
-	CreateConnectorSpawner(ESotaDirection::Left, TEXT("Left Spawner"));
-}
-
-
-#pragma endregion
-
- /**
-  *	<p>
-  *		RoomBase의 Root Component와 Editor 상에서 표시하기 위한 Display를 초기화
-  *	</p>
-  */
+// =========================================================================
+// 생성자
+// =========================================================================
 ARoomBase::ARoomBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = false;
+    
+    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Center Anchor"));
 
-	// Root Component 설정
-	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Center Anchor"));
-
-
-	// Room의 영역을 표시하는 Display용 Component들을 초기화
-#if WITH_EDITOR
+    TerrainMeshHolder = CreateDefaultSubobject<USceneComponent>(TEXT("Terrain Mesh Holder"));
+    TerrainMeshHolder->SetupAttachment(RootComponent);
+    
+    FloorMeshComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Floor Mesh Component"));
+    FloorMeshComponent->SetupAttachment(TerrainMeshHolder);
 	
-	CreateArrowDisplayHolder();
-	CreateRegionDisplayHolder();
-	CreateFloorRegionDisplay();
-	CreateDirectionArrowDisplays();
-	CreateConnectorRegionDisplays();
+	CeilingMeshComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Ceiling Mesh Component"));
+	CeilingMeshComponent->SetupAttachment(TerrainMeshHolder);
+    
+    WallMeshComponents.Add(ESotaDirection::Forward, CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Forward Wall Mesh Component")));
+    WallMeshComponents[ESotaDirection::Forward]->SetupAttachment(TerrainMeshHolder);
+    WallMeshComponents.Add(ESotaDirection::Backward, CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Backward Wall Mesh Component")));
+    WallMeshComponents[ESotaDirection::Backward]->SetupAttachment(TerrainMeshHolder);
+    WallMeshComponents.Add(ESotaDirection::Left, CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Left Wall Mesh Component")));
+    WallMeshComponents[ESotaDirection::Left]->SetupAttachment(TerrainMeshHolder);
+    WallMeshComponents.Add(ESotaDirection::Right, CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Right Wall Mesh Component")));
+    WallMeshComponents[ESotaDirection::Right]->SetupAttachment(TerrainMeshHolder);
 
+#if WITH_EDITOR
+    CreateArrowDisplayHolder();
+    CreateRegionDisplayHolder();
+    CreateConnectorDisplayHolder();
+    CreateFloorRegionDisplay();
+    CreateDirectionArrowDisplays();
+    CreateConnectorRegionDisplays();
+    CreateConnectorDisplays();
 #endif
 
-	// 연결부 생성기 생성
-	CreateConnectorSpawners();
-
-	// 플레이어 감지 박스 생성
-	PlayerDetectionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("Player Detection Box"));
-	PlayerDetectionBox->SetupAttachment(RootComponent);
-
-	// 플레이어(Pawn)만 감지하도록 설정 (프로젝트 설정에 따라 다를 수 있음)
-	PlayerDetectionBox->SetCollisionProfileName(TEXT("Trigger"));
-    
-	// 이벤트 바인딩
-	PlayerDetectionBox->OnComponentBeginOverlap.AddDynamic(this, &ARoomBase::OnPlayerOverlap);
+    PlayerDetectionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("Player Detection Box"));
+    PlayerDetectionBox->SetupAttachment(RootComponent);
+    PlayerDetectionBox->SetCollisionProfileName(TEXT("Trigger"));
+    PlayerDetectionBox->OnComponentBeginOverlap.AddDynamic(this, &ARoomBase::OnPlayerOverlap);
 }
 
-
+// =========================================================================
+// 에디터 비주얼 업데이트 및 동적 세팅 (OnConstruction)
+// =========================================================================
 #if WITH_EDITOR
-
-// Visualize를 위한 Component를 업데이트하는 Method
-#pragma region Editor Visualizer Update Methods
-
- /**
-  * <p>
-  *		<code>Room</code>에 속하는 <code>Connector</code>의 영역을 업데이트
-  * </p>
-  * @param InHalfSize <code>Room</code>의 절반 크기
-  * @todo  문의 크기를 RoomBase의 책임으로 넘기기
-  */
 void ARoomBase::UpdateConnectorRegionDisplays(float InHalfSize)
 {
-    // 요구사항: 높이 700, 가로 700, 깊이 50 -> 반지름 값으로 계산
     const FVector DoorHalfExtent = FVector(25.0f, 350.0f, 350.0f);
     const float DoorZ = DoorHalfExtent.Z;
 
@@ -191,7 +178,6 @@ void ARoomBase::UpdateConnectorRegionDisplays(float InHalfSize)
         FVector TargetLoc = FVector::ZeroVector;
         FRotator TargetRot = FRotator::ZeroRotator;
 
-        // 방향 비트에 따른 위치 및 회전값 계산
         if (EnumHasAnyFlags(Dir, ESotaDirection::Forward))  { TargetLoc = FVector(InHalfSize, 0.f, DoorZ); TargetRot = FRotator::ZeroRotator; }
         if (EnumHasAnyFlags(Dir, ESotaDirection::Backward)) { TargetLoc = FVector(-InHalfSize, 0.f, DoorZ); TargetRot = FRotator(0.f, 180.f, 0.f); }
         if (EnumHasAnyFlags(Dir, ESotaDirection::Right))    { TargetLoc = FVector(0.f, InHalfSize, DoorZ); TargetRot = FRotator(0.f, 90.f, 0.f); }
@@ -203,12 +189,6 @@ void ARoomBase::UpdateConnectorRegionDisplays(float InHalfSize)
     }
 }
 
- /**
-  * <p>
-  *		<code>Room</code>에 속하는 <Code>Direction Arrow</code>를 업데이트
-  * </p>
-  * @param InHalfSize <code>Room</code>의 절반 크기
-  */
 void ARoomBase::UpdateDirectionArrowDisplays(float InHalfSize)
 {
     for (auto& Pair : DirectionArrowDisplays)
@@ -220,350 +200,406 @@ void ARoomBase::UpdateDirectionArrowDisplays(float InHalfSize)
         FVector TargetLoc = FVector::ZeroVector;
         FRotator TargetRot = FRotator::ZeroRotator;
 
-        // 비트마스크를 활용하여 방향별 좌표 및 회전 설정
         if (EnumHasAnyFlags(Dir, ESotaDirection::Forward))  { TargetLoc = FVector(InHalfSize, 0.f, 0.f); TargetRot = FRotator(0.f, 0.f, 0.f); }
         else if (EnumHasAnyFlags(Dir, ESotaDirection::Backward)) { TargetLoc = FVector(-InHalfSize, 0.f, 0.f); TargetRot = FRotator(0.f, 180.f, 0.f); }
         else if (EnumHasAnyFlags(Dir, ESotaDirection::Right))    { TargetLoc = FVector(0.f, InHalfSize, 0.f); TargetRot = FRotator(0.f, 90.f, 0.f); }
         else if (EnumHasAnyFlags(Dir, ESotaDirection::Left))     { TargetLoc = FVector(0.f, -InHalfSize, 0.f); TargetRot = FRotator(0.f, -90.f, 0.f); }
-        else if (EnumHasAnyFlags(Dir, ESotaDirection::Center))   { TargetLoc = FVector::ZeroVector; TargetRot = FRotator(90.f, 0.f, 0.f); } // 위를 바라봄
+        else if (EnumHasAnyFlags(Dir, ESotaDirection::Center))   { TargetLoc = FVector::ZeroVector; TargetRot = FRotator(90.f, 0.f, 0.f); }
 
         Arrow->SetRelativeLocation(TargetLoc);
         Arrow->SetRelativeRotation(TargetRot);
     }
 }
-
-
-#pragma endregion
-
 #endif
 
-#pragma region Connector Spawner Update Methods
-
-void ARoomBase::UpdateConnectorSpawners(float InHalfSize)
-{
-	// 디버그 박스와 동일하게 방의 끝자락(문이 달릴 위치)을 계산
-	const FVector DoorHalfExtent = FVector(25.0f, 350.0f, 350.0f);
-	const float DoorZ = DoorHalfExtent.Z;
-
-	for (auto& Pair : ConnectorSpawners)
-	{
-		ESotaDirection Dir = Pair.Key;
-		UConnectorSpawner* Spawner = Pair.Value.Get();
-		if (!Spawner) continue;
-
-		// 1. 활성화/비활성화 제어 (디버그 박스와 동일한 논리 적용)
-		bool bIsPlaceable = IsConnectorPlaceable(Dir);
-		Spawner->SetActive(bIsPlaceable);
-		// 에디터 상에서 비활성화된 스포너 컴포넌트를 숨겨 헷갈리지 않게 함
-		Spawner->SetHiddenInGame(!bIsPlaceable); 
-
-		// 2. 위치 동기화
-		if (bIsPlaceable)
-		{
-			FVector TargetLoc = FVector::ZeroVector;
-			FRotator TargetRot = FRotator::ZeroRotator;
-
-			if (EnumHasAnyFlags(Dir, ESotaDirection::Forward))  { TargetLoc = FVector(InHalfSize, 0.f, DoorZ); TargetRot = FRotator::ZeroRotator; }
-			else if (EnumHasAnyFlags(Dir, ESotaDirection::Backward)) { TargetLoc = FVector(-InHalfSize, 0.f, DoorZ); TargetRot = FRotator(0.f, 180.f, 0.f); }
-			else if (EnumHasAnyFlags(Dir, ESotaDirection::Right))    { TargetLoc = FVector(0.f, InHalfSize, DoorZ); TargetRot = FRotator(0.f, 90.f, 0.f); }
-			else if (EnumHasAnyFlags(Dir, ESotaDirection::Left))     { TargetLoc = FVector(0.f, -InHalfSize, DoorZ); TargetRot = FRotator(0.f, -90.f, 0.f); }
-
-			Spawner->SetRelativeLocation(TargetLoc);
-			Spawner->SetRelativeRotation(TargetRot);
-		}
-	}
-}
-
-#pragma endregion
-
-
- void ARoomBase::OnConstruction(const FTransform& Transform)
+void ARoomBase::OnConstruction(const FTransform& Transform)
 {
     Super::OnConstruction(Transform);
-
-	// deprecated
-	// WallForward = Cast<UStaticMeshComponent>(WallForwardRef.GetComponent(this));
-	// WallBackward = Cast<UStaticMeshComponent>(WallBackwardRef.GetComponent(this));
-	// WallRight = Cast<UStaticMeshComponent>(WallRightRef.GetComponent(this));
-	// WallLeft = Cast<UStaticMeshComponent>(WallLeftRef.GetComponent(this));
-	
-	// Room의 HalfSize를 구함
-	float HalfSize = Size * 0.5f;
-
-	if (PlayerDetectionBox)
-	{
-		// 높이는 적절히 플레이어를 커버할 정도(예: 300)로 설정
-		PlayerDetectionBox->SetBoxExtent(FVector(HalfSize - 200, HalfSize - 200, 300.0f));
-		// 바닥에서 약간 띄우거나 중심에 맞춤
-		PlayerDetectionBox->SetRelativeLocation(FVector(0.0f, 0.0f, 150.0f));
-	}
-#if WITH_EDITOR
-	
     
+    // 구조체(RoomConfig)의 Size를 참조합니다.
+    float HalfSize = RoomConfig.Size * 0.5f;
 
-	// 바닥 영역을 나타내는 박스의 크기와 위치 업데이트
-	if (FloorRegionDisplay)
-	{
-		// 반지름 개념이므로 절반값 적용, 두께는 50.0f
-		const float BoxHalfZ = 50.0f;
-		FloorRegionDisplay->SetBoxExtent(FVector(HalfSize, HalfSize, BoxHalfZ));
+    if (PlayerDetectionBox)
+    {
+       float BoxExtentXY = FMath::Max(50.0f, HalfSize - 200.0f);
+       PlayerDetectionBox->SetBoxExtent(FVector(BoxExtentXY, BoxExtentXY, 300.0f));
+       PlayerDetectionBox->SetRelativeLocation(FVector(0.0f, 0.0f, 150.0f));
+    }
+
+#if WITH_EDITOR
+    if (FloorRegionDisplay)
+    {
+       const float BoxHalfZ = 50.0f;
+       FloorRegionDisplay->SetBoxExtent(FVector(HalfSize, HalfSize, BoxHalfZ));
+       FloorRegionDisplay->SetRelativeLocation(FVector(0.0f, 0.0f, -BoxHalfZ));
+    }
+
+    UpdateConnectorRegionDisplays(HalfSize);
+    UpdateDirectionArrowDisplays(HalfSize);
+
+    for (auto& Pair : ConnectorDisplays)
+    {
+        ESotaDirection Dir = Pair.Key;
+        UStaticMeshComponent* MeshComp = Pair.Value.Get();
         
-		// 윗면이 0(바닥 평면)이 되도록 두께 절반만큼 아래로 배치
-		FloorRegionDisplay->SetRelativeLocation(FVector(0.0f, 0.0f, -BoxHalfZ));
-	}
+        if (!MeshComp) continue;
 
+        if (!IsConnectorPlaceable(Dir))
+        {
+            MeshComp->SetVisibility(false);
+            continue;
+        }
 
-	// 각 방향별 연결부 영역 배치 갱신
-	UpdateConnectorRegionDisplays(HalfSize);
+        MeshComp->SetVisibility(true);
 
-	// 각 방향별 화살표 위치 및 회전 갱신
-	UpdateDirectionArrowDisplays(HalfSize);
+        FVector TargetLoc = FVector::ZeroVector;
+        FRotator TargetRot = FRotator::ZeroRotator;
 
+        if (EnumHasAnyFlags(Dir, ESotaDirection::Forward))  { TargetLoc = FVector(HalfSize, 0.f, 0.f); TargetRot = FRotator(0.f, 90.f, 0.f); }
+        else if (EnumHasAnyFlags(Dir, ESotaDirection::Backward)) { TargetLoc = FVector(-HalfSize, 0.f, 0.f); TargetRot = FRotator(0.f, -90.f, 0.f); }
+        else if (EnumHasAnyFlags(Dir, ESotaDirection::Right))    { TargetLoc = FVector(0.f, HalfSize, 0.f); TargetRot = FRotator(0.f, 180.f, 0.f); }
+        else if (EnumHasAnyFlags(Dir, ESotaDirection::Left))     { TargetLoc = FVector(0.f, -HalfSize, 0.f); TargetRot = FRotator(0.f, 0.f, 0.f); }
+
+        MeshComp->SetRelativeLocationAndRotation(TargetLoc, TargetRot);
+
+        TSubclassOf<ARoomConnector> SelectedClass = GetConnectorClass(Dir);
+        if (SelectedClass)
+        {
+           if (ARoomConnector* CDO = Cast<ARoomConnector>(SelectedClass->GetDefaultObject()))
+           {
+              MeshComp->SetStaticMesh(CDO->GetEditorPreviewMesh());
+           }
+        }
+        else
+        {
+           MeshComp->SetStaticMesh(nullptr); 
+        }
+    }
 #endif
-
-	UpdateConnectorSpawners(HalfSize);
 }
 
+// =========================================================================
+// 런타임 게임 로직 (방 진입, 전투 클리어, 스폰)
+// =========================================================================
 void ARoomBase::OnPlayerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
-							   UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
-							   bool bFromSweep, const FHitResult& SweepResult)
+                         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
+                         bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->IsA(ADelveCharacter::StaticClass()))
-	{
-		if (!bIsExplored)
-		{
-			bIsExplored = true;
-			// 중앙 관리자(DungeonGenerator)에게 알림!
-			OnPlayerEnteredRoom.Broadcast(this);
-		}
-	}
+    if (OtherActor && OtherActor->IsA(ADelveCharacter::StaticClass()))
+    {
+       if (!bIsExplored)
+       {
+          bIsExplored = true;
+          OnPlayerEnteredRoom.Broadcast(this);
+       }
+    }
 }
 
 bool ARoomBase::CheckRoomClear_Implementation()
 {
-	if (Enemies.IsEmpty())
-	{
-		// 수정됨: Doors 대신 Connectors를 순회하고 다형성 함수(OpenConnector) 호출
-		for (auto& Pair : Connectors)
-		{
-			if (ARoomConnector* Connector = Pair.Value.Get())
-			{
-				Connector->OpenConnector(true);
-			}
-		}
+    if (Enemies.IsEmpty())
+    {
+       for (auto& Pair : Connectors)
+       {
+          if (ARoomConnector* Connector = Pair.Value.Get())
+          {
+             Connector->OpenConnector(true);
+          }
+       }
 
-		Cast<ADelveCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->TriggerLevelUp();
-		return true;
-	}
+       Cast<ADelveCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0))->TriggerLevelUp();
+       return true;
+    }
 
-	return false;
+    return false;
 }
 
 void ARoomBase::TrigSpawn()
 {
-	// TODO: Template을 이용하든 바로 UEnemySpawner로 받을 수 있는지 확인하기
-	TArray<UActorComponent*> SpawnerComponents = GetComponentsByInterface(UEnemySpawner::StaticClass());
+    TArray<UActorComponent*> SpawnerComponents = GetComponentsByInterface(UEnemySpawner::StaticClass());
 
-	for (UActorComponent* Comp : SpawnerComponents)
-	{
-		if (Comp)
-		{
-			// 2. 적 소환 (리턴값으로 소환된 적을 받음)
-			ADelveEnemy* SpawnedEnemy = IEnemySpawner::Execute_SpawnEnemy(Comp);
+    for (UActorComponent* Comp : SpawnerComponents)
+    {
+       if (Comp)
+       {
+          ADelveEnemy* SpawnedEnemy = IEnemySpawner::Execute_SpawnEnemy(Comp);
+          if (SpawnedEnemy)
+          {
+             SpawnedEnemy->OnEnemyDeath.AddDynamic(this, &ARoomBase::HandleEnemyDeath);
+             Enemies.Add(SpawnedEnemy);
+          }
+       }
+    }
 
-			// 3. 소환에 성공했다면 델리게이트 바인딩
-			if (SpawnedEnemy)
-			{
-				// [핵심] AddDynamic(대상객체, &클래스명::함수명)
-				SpawnedEnemy->OnEnemyDeath.AddDynamic(this, &ARoomBase::HandleEnemyDeath);
-                
-				Enemies.Add(SpawnedEnemy);
-			}
-		}
-	}
-
-	if (Enemies.Num() > 0)
-	{
-		// 방에 적이 스폰되어 문을 닫아야 할 때
-		for (auto& Pair : Connectors)
-		{
-			if (ARoomConnector* Connector = Pair.Value.Get())
-			{
-				// 다형성에 의해, 만약 이것이 ADelveDoor라면 알아서 CloseConnector()가 실행되며 문이 잠깁니다.
-				Connector->CloseConnector();
-			}
-		}
-	}
+    if (Enemies.Num() > 0)
+    {
+       for (auto& Pair : Connectors)
+       {
+          if (ARoomConnector* Connector = Pair.Value.Get())
+          {
+             Connector->CloseConnector();
+          }
+       }
+    }
 }
 
-// 4. 적이 죽었을 때 실행될 로직
 void ARoomBase::HandleEnemyDeath_Implementation(ADelveEnemy* DeadEnemy)
 {
-	if (!DeadEnemy)
-	{
-		return;
-	}
-	
-	// 로그 확인
-	UE_LOG(LogTemp, Log, TEXT("Enemy Died: %s"), *DeadEnemy->GetName());
-
-	if (!Enemies.Remove(DeadEnemy))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Unregistered Enemy Died: %s"), *DeadEnemy->GetName());
-	}
+    if (!DeadEnemy) return;
     
-	DeadEnemy->OnEnemyDeath.RemoveDynamic(this, &ARoomBase::HandleEnemyDeath);
+    UE_LOG(LogTemp, Log, TEXT("Enemy Died: %s"), *DeadEnemy->GetName());
 
-	CheckRoomClear();
+    if (!Enemies.Remove(DeadEnemy))
+    {
+       UE_LOG(LogTemp, Error, TEXT("Unregistered Enemy Died: %s"), *DeadEnemy->GetName());
+    }
+    
+    DeadEnemy->OnEnemyDeath.RemoveDynamic(this, &ARoomBase::HandleEnemyDeath);
+    CheckRoomClear();
 }
 
-void ARoomBase::OpenWall(ESotaDirection Direction)
+// =========================================================================
+// HISM 바닥 및 벽 생성 로직
+// =========================================================================
+void ARoomBase::CreateFloorByHISM_Implementation(UStaticMesh* FloorMesh)
 {
-	// Direction은 Generator가 계산한 '월드 기준 방향'입니다.
-	// 방이 회전되어 있으므로, 월드 방향을 로컬 방향으로 변환해야 합니다.
+    if (!FloorMesh) return;
     
-	UStaticMeshComponent* TargetWall = nullptr;
+    FloorMeshComponent->ClearInstances();  
+    FloorMeshComponent->SetStaticMesh(FloorMesh);
 
-	// 월드 방향 벡터 구하기
-	FVector WorldDir = FVector::ZeroVector;
-	switch (Direction)
-	{
-	case ESotaDirection::Forward:  WorldDir = FVector(1, 0, 0); break;
-	case ESotaDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
-	case ESotaDirection::Right:    WorldDir = FVector(0, 1, 0); break;
-	case ESotaDirection::Left:     WorldDir = FVector(0, -1, 0); break;
-	default:
-		UE_LOG(LogTemp, Warning, TEXT("Invalid Direction in OpenWall: %s"), *UEnum::GetValueAsString(Direction));
-		return;
-	}
+    FVector TileSize = FloorMesh->GetBoundingBox().GetSize();
+    if (TileSize.X <= 0.f || TileSize.Y <= 0.f) return;
 
-	// 월드 방향을 내 로컬 공간으로 역변환 (InverseTransformVector)
-	FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(WorldDir);
+    TArray<FTransform> InstanceTransforms;
+    
+    // 구조체 참조
+    const int32 XRepeats = FMath::FloorToInt(RoomConfig.Size / TileSize.X / 2);
+    const int32 YRepeats = FMath::FloorToInt(RoomConfig.Size / TileSize.Y / 2);
 
-	// 로컬 방향에 따른 벽 선택 (오차 허용 0.1)
-	if (LocalDir.X > 0.5f)  TargetWall = WallForward;
-	else if (LocalDir.X < -0.5f) TargetWall = WallBackward;
-	else if (LocalDir.Y > 0.5f)  TargetWall = WallRight;
-	else if (LocalDir.Y < -0.5f) TargetWall = WallLeft;
+    for (int i = -XRepeats; i <= XRepeats; ++i)
+    {
+       for (int j = -YRepeats; j <= YRepeats; ++j)
+       {
+          FTransform T;
+          T.SetLocation(FVector(i * TileSize.X, j * TileSize.Y, 0.0));
+          InstanceTransforms.Add(T);
+       }
+    }
 
-	if (TargetWall)
-	{
-		TargetWall->SetHiddenInGame(true);
-		TargetWall->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		TargetWall->SetVisibility(false); 
-	}
+    FloorMeshComponent->AddInstances(InstanceTransforms, false);
 }
 
-ARoomConnector* ARoomBase::SpawnConnector(ESotaDirection WorldDirection)
+void ARoomBase::CreateWallByHISM_Implementation(ESotaDirection Direction, UStaticMesh* WallMesh, int32 Height)
 {
-	// 1. 월드 방향을 로컬 방향으로 변환 (OpenWall과 동일한 로직)
-	FVector WorldDir = FVector::ZeroVector;
-	switch (WorldDirection) {
-	case ESotaDirection::Forward:  WorldDir = FVector(1, 0, 0); break;
-	case ESotaDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
-	case ESotaDirection::Right:    WorldDir = FVector(0, 1, 0); break;
-	case ESotaDirection::Left:     WorldDir = FVector(0, -1, 0); break;
-	}
+    if (Direction == ESotaDirection::Empty || Direction == ESotaDirection::Center) return;
+    if (WallMesh == nullptr || Height <= 0) return;
+    if (!WallMeshComponents.Contains(Direction) || WallMeshComponents[Direction] == nullptr) return;
     
-	FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(WorldDir);
-	ESotaDirection LocalDirection = ESotaDirection::Forward;
+    UHierarchicalInstancedStaticMeshComponent* TargetWallComponent = WallMeshComponents[Direction];
+
+    TargetWallComponent->ClearInstances();
+    TargetWallComponent->SetStaticMesh(WallMesh);
+
+    FVector TileSize = WallMesh->GetBoundingBox().GetSize();
+    if (TileSize.X <= 0.f || TileSize.Z <= 0.f) return;
+
+    TArray<FTransform> InstanceTransforms;
     
-	if (LocalDir.X > 0.5f) LocalDirection = ESotaDirection::Forward;
-	else if (LocalDir.X < -0.5f) LocalDirection = ESotaDirection::Backward;
-	else if (LocalDir.Y > 0.5f) LocalDirection = ESotaDirection::Right;
-	else if (LocalDir.Y < -0.5f) LocalDirection = ESotaDirection::Left;
-	
-	
-	// 1. 해당 방향의 Spawner 찾기
-	const TObjectPtr<UConnectorSpawner>* SpawnerPtr = ConnectorSpawners.Find(LocalDirection);
-	if (!SpawnerPtr || !(*SpawnerPtr))
-	{
-		return nullptr;
-	}
+    // 구조체 참조
+    const int32 XRepeats = FMath::FloorToInt(RoomConfig.Size / TileSize.X / 2);
+    float HalfSize = RoomConfig.Size / 2.0f;
 
-	UConnectorSpawner* Spawner = *SpawnerPtr;
+    for (int i = -XRepeats; i <= XRepeats; ++i)
+    {
+       for (int j = 0; j < Height; ++j)
+       {
+          // 중앙 슬롯인지 확인
+          bool bIsConnectorSlot = (i == 0 && j == 0);
+          FTransform T;
 
-	// 2. Spawner에 지정된 스폰할 클래스 가져오기
-	TSubclassOf<ARoomConnector> ClassToSpawn = Spawner->GetConnectorClass();
-	if (!ClassToSpawn)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ARoomBase: %s 방향의 Spawner에 ConnectorClass가 지정되지 않았습니다!"), *UEnum::GetValueAsString(LocalDirection));
-		return nullptr;
-	}
+          if (Direction == ESotaDirection::Forward)
+          {
+             // 문이 들어갈 자리면서 동시에 문이 설치가능하다면, 벽돌 배치를 제외한다.
+             if (!(bIsConnectorSlot && IsConnectorPlaceable(Direction)))
+             {
+                T.SetLocation(FVector(HalfSize, i * TileSize.X, j * TileSize.Z));
+                T.SetRotation(FQuat(FRotator(0.0f, 90.0f, 0.0f)));
+                InstanceTransforms.Add(T);
+             }
+          }
+          else if (Direction == ESotaDirection::Backward)
+          {
+             if (!(bIsConnectorSlot && IsConnectorPlaceable(Direction)))
+             {
+                T.SetLocation(FVector(-HalfSize, i * TileSize.X, j * TileSize.Z));
+                T.SetRotation(FQuat(FRotator(0.0f, -90.0f, 0.0f)));
+                InstanceTransforms.Add(T);
+             }
+          }
+          else if (Direction == ESotaDirection::Left)
+          {
+             if (!(bIsConnectorSlot && IsConnectorPlaceable(Direction)))
+             {
+                T.SetLocation(FVector(i * TileSize.X, -HalfSize, j * TileSize.Z));
+                T.SetRotation(FQuat(FRotator(0.0f, 0.f, 0.0f))); 
+                InstanceTransforms.Add(T);
+             }
+          }
+          else if (Direction == ESotaDirection::Right)
+          {
+             if (!(bIsConnectorSlot && IsConnectorPlaceable(Direction)))
+             {
+                T.SetLocation(FVector(i * TileSize.X, HalfSize, j * TileSize.Z));
+                T.SetRotation(FQuat(FRotator(0.0f, 180.0f, 0.0f)));
+                InstanceTransforms.Add(T);
+             }
+          }
+       }
+    }
 
-	// 3. Spawner의 월드 트랜스폼(위치, 회전, 크기) 가져오기
-	FTransform SpawnTransform = Spawner->GetComponentTransform();
-
-	// 4. 스폰 파라미터 설정
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	// 5. 월드에 Connector 스폰
-	ARoomConnector* NewConnector = GetWorld()->SpawnActor<ARoomConnector>(ClassToSpawn, SpawnTransform, SpawnParams);
-    
-	if (NewConnector)
-	{
-		// 6. 스폰 성공 시 내 방에 등록 (벽 열기 포함)
-		RegisterConnector(LocalDirection, NewConnector);
-	}
-
-	return NewConnector;
+    TargetWallComponent->AddInstances(InstanceTransforms, false);
 }
 
-void ARoomBase::RegisterConnector(ESotaDirection Direction, ARoomConnector* InConnector)
+void ARoomBase::CreateCeilingByHISM_Implementation(UStaticMesh* CeilingMesh, float CeilingHeight)
 {
-	if (InConnector)
+	if (!CeilingMesh) return;
+    
+	CeilingMeshComponent->ClearInstances();  
+	CeilingMeshComponent->SetStaticMesh(CeilingMesh);
+
+	FVector TileSize = CeilingMesh->GetBoundingBox().GetSize();
+	if (TileSize.X <= 0.f || TileSize.Y <= 0.f) return;
+
+	TArray<FTransform> InstanceTransforms;
+    
+	// 구조체 참조하여 반복 횟수 계산
+	const int32 XRepeats = FMath::FloorToInt(RoomConfig.Size / TileSize.X / 2);
+	const int32 YRepeats = FMath::FloorToInt(RoomConfig.Size / TileSize.Y / 2);
+
+	for (int i = -XRepeats; i <= XRepeats; ++i)
 	{
-		// 방의 활성화된 Connectors 목록에 추가
-		Connectors.Add(Direction, InConnector);
-        
-		// 커넥터가 연결되었으므로 해당 방향의 벽을 엽니다.
-		OpenWall(Direction);
+		for (int j = -YRepeats; j <= YRepeats; ++j)
+		{
+			FTransform T;
+          
+			// 1. 위치: 바닥(0.0) 대신 파라미터로 받은 높이(CeilingHeight)에 배치
+			T.SetLocation(FVector(i * TileSize.X, j * TileSize.Y, CeilingHeight));
+          
+			// 2. 회전: 바닥용 메쉬를 천장에 그대로 쓰면 텍스처가 위쪽을 바라보므로, X축(Roll) 기준으로 180도 뒤집습니다.
+			// (만약 천장 전용 양면 메쉬나, 이미 아래를 보는 메쉬라면 이 줄을 지우거나 ZeroRotator로 바꾸세요)
+			T.SetRotation(FQuat(FRotator(180.0f, 0.0f, 0.0f)));
+          
+			InstanceTransforms.Add(T);
+		}
 	}
+
+	CeilingMeshComponent->AddInstances(InstanceTransforms, false);
+}
+
+// =========================================================================
+// 커넥터 및 막음벽 생성 (Spawn / Register)
+// =========================================================================
+ARoomConnector* ARoomBase::SpawnConnector(ESotaDirection WorldDirection, TSubclassOf<ARoomConnector> OverrideClass)
+{
+    FVector WorldDir = FVector::ZeroVector;
+    switch (WorldDirection) {
+        case ESotaDirection::Forward:  WorldDir = FVector(1, 0, 0); break;
+        case ESotaDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
+        case ESotaDirection::Right:    WorldDir = FVector(0, 1, 0); break;
+        case ESotaDirection::Left:     WorldDir = FVector(0, -1, 0); break;
+        default: break;
+    }
+    
+    FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(WorldDir);
+    ESotaDirection LocalDirection = ESotaDirection::Forward;
+    
+    if (LocalDir.X > 0.5f) LocalDirection = ESotaDirection::Forward;
+    else if (LocalDir.X < -0.5f) LocalDirection = ESotaDirection::Backward;
+    else if (LocalDir.Y > 0.5f) LocalDirection = ESotaDirection::Right;
+    else if (LocalDir.Y < -0.5f) LocalDirection = ESotaDirection::Left;
+
+    TSubclassOf<ARoomConnector> ClassToSpawn = OverrideClass ? OverrideClass : GetConnectorClass(LocalDirection);
+    if (!ClassToSpawn) return nullptr;
+
+    float HalfSize = RoomConfig.Size * 0.5f;
+    FVector LocalLoc = FVector::ZeroVector;
+    FRotator LocalRot = FRotator::ZeroRotator;
+
+    switch (LocalDirection) {
+        case ESotaDirection::Forward:  LocalLoc = FVector(HalfSize, 0, 0); LocalRot = FRotator::ZeroRotator; break;
+        case ESotaDirection::Backward: LocalLoc = FVector(-HalfSize, 0, 0); LocalRot = FRotator(0, 180.f, 0); break;
+        case ESotaDirection::Right:    LocalLoc = FVector(0, HalfSize, 0); LocalRot = FRotator(0, 90.f, 0); break;
+        case ESotaDirection::Left:     LocalLoc = FVector(0, -HalfSize, 0); LocalRot = FRotator(0, -90.f, 0); break;
+        default: break;
+    }
+
+    FTransform LocalTransform(LocalRot, LocalLoc);
+    FTransform SpawnTransform = LocalTransform * GetActorTransform();
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Owner = this;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    ARoomConnector* NewConnector = GetWorld()->SpawnActor<ARoomConnector>(ClassToSpawn, SpawnTransform, SpawnParams);
+    
+    if (NewConnector) RegisterConnector(LocalDirection, NewConnector);
+    return NewConnector;
+}
+
+void ARoomBase::RegisterConnector(ESotaDirection LocalDirection, ARoomConnector* InConnector)
+{
+    if (InConnector)
+    {
+       Connectors.Add(LocalDirection, InConnector);
+    }
 }
 
 void ARoomBase::SpawnFiller(ESotaDirection WorldDirection)
 {
-	FVector WorldDir = FVector::ZeroVector;
-	switch (WorldDirection) {
-	case ESotaDirection::Forward:  WorldDir = FVector(1, 0, 0); break;
-	case ESotaDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
-	case ESotaDirection::Right:    WorldDir = FVector(0, 1, 0); break;
-	case ESotaDirection::Left:     WorldDir = FVector(0, -1, 0); break;
-	}
+    FVector WorldDir = FVector::ZeroVector;
+    switch (WorldDirection) {
+        case ESotaDirection::Forward:  WorldDir = FVector(1, 0, 0); break;
+        case ESotaDirection::Backward: WorldDir = FVector(-1, 0, 0); break;
+        case ESotaDirection::Right:    WorldDir = FVector(0, 1, 0); break;
+        case ESotaDirection::Left:     WorldDir = FVector(0, -1, 0); break;
+        default: break;
+    }
     
-	FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(WorldDir);
-	ESotaDirection LocalDirection = ESotaDirection::Forward;
+    FVector LocalDir = GetActorTransform().InverseTransformVectorNoScale(WorldDir);
+    ESotaDirection LocalDirection = ESotaDirection::Forward;
     
-	if (LocalDir.X > 0.5f) LocalDirection = ESotaDirection::Forward;
-	else if (LocalDir.X < -0.5f) LocalDirection = ESotaDirection::Backward;
-	else if (LocalDir.Y > 0.5f) LocalDirection = ESotaDirection::Right;
-	else if (LocalDir.Y < -0.5f) LocalDirection = ESotaDirection::Left;
-	
-	// 1. 해당 방향에 설정된 Filler 메쉬 가져오기
-	UStaticMesh* FillerMesh = GetFiller(LocalDirection);
-	if (!FillerMesh) return;
+    if (LocalDir.X > 0.5f) LocalDirection = ESotaDirection::Forward;
+    else if (LocalDir.X < -0.5f) LocalDirection = ESotaDirection::Backward;
+    else if (LocalDir.Y > 0.5f) LocalDirection = ESotaDirection::Right;
+    else if (LocalDir.Y < -0.5f) LocalDirection = ESotaDirection::Left;
+    
+    UStaticMesh* FillerMesh = GetFiller(LocalDirection);
+    if (!FillerMesh) return;
 
-	// 2. 위치 기준이 될 스포너 찾기
-	const TObjectPtr<UConnectorSpawner>* SpawnerPtr = ConnectorSpawners.Find(LocalDirection);
-	if (!SpawnerPtr || !(*SpawnerPtr)) return;
-
-	// 3. 런타임에 UStaticMeshComponent 동적 생성
-	FString NameStr = FString::Printf(TEXT("FillerComponent_%d"), static_cast<int32>(LocalDirection));
-	UStaticMeshComponent* NewFiller = NewObject<UStaticMeshComponent>(this, FName(*NameStr));
+    FString NameStr = FString::Printf(TEXT("FillerComponent_%d"), static_cast<int32>(LocalDirection));
+    UStaticMeshComponent* NewFiller = NewObject<UStaticMeshComponent>(this, FName(*NameStr));
     
-	if (NewFiller)
-	{
-		NewFiller->SetStaticMesh(FillerMesh);
-		NewFiller->SetupAttachment(RootComponent);
+    if (NewFiller)
+    {
+       NewFiller->SetStaticMesh(FillerMesh);
+       NewFiller->SetupAttachment(RootComponent);
         
-		// 스포너와 완벽하게 동일한 위치/회전 적용
-		NewFiller->SetRelativeTransform((*SpawnerPtr)->GetRelativeTransform());
-        
-		// [중요] 런타임에 동적으로 생성한 컴포넌트는 반드시 RegisterComponent를 호출해야 월드에 나타납니다.
-		NewFiller->RegisterComponent();
+       float HalfSize = RoomConfig.Size * 0.5f;
+       FVector LocalLoc = FVector::ZeroVector;
+       FRotator LocalRot = FRotator::ZeroRotator;
 
-		SpawnedFillers.Add(LocalDirection, NewFiller);
-	}
+       switch (LocalDirection) {
+           case ESotaDirection::Forward:  LocalLoc = FVector(HalfSize, 0, 0); LocalRot = FRotator::ZeroRotator; break;
+           case ESotaDirection::Backward: LocalLoc = FVector(-HalfSize, 0, 0); LocalRot = FRotator(0, 180.f, 0); break;
+           case ESotaDirection::Right:    LocalLoc = FVector(0, HalfSize, 0); LocalRot = FRotator(0, 90.f, 0); break;
+           case ESotaDirection::Left:     LocalLoc = FVector(0, -HalfSize, 0); LocalRot = FRotator(0, -90.f, 0); break;
+           default: break;
+       }
+
+       NewFiller->SetRelativeLocationAndRotation(LocalLoc, LocalRot);
+       NewFiller->RegisterComponent();
+
+       SpawnedFillers.Add(LocalDirection, NewFiller);
+    }
 }
