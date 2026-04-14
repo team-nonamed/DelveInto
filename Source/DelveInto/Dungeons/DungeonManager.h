@@ -6,7 +6,7 @@
 #include "RoomType.h"
 #include "Structs/LimitCounts.h"
 #include "Types/Direction.h"
-#include "DungeonGenerator.generated.h"
+#include "DungeonManager.generated.h"
 
 class ARoomBase;
 class ARoomConnector;
@@ -44,12 +44,12 @@ struct FRoomTypeConfig
 };
 
 UCLASS()
-class DELVEINTO_API ADungeonGenerator : public AActor
+class DELVEINTO_API ADungeonManager : public AActor
 {
     GENERATED_BODY()
 
 public:
-    ADungeonGenerator();
+    ADungeonManager();
 
 protected:
     virtual void BeginPlay() override;
@@ -121,4 +121,10 @@ private:
     // 플레이어가 방에 들어왔을 때 호출될 핸들러
     UFUNCTION()
     void HandleRoomExplored(ARoomBase* ExploredRoom);
+    
+    // [추가] 벡터를 ESotaDirection으로 변환
+    ESotaDirection GetDirectionFromVector(FIntPoint Vector);
+
+    // [추가] 특정 방향에 문을 열 수 있는 호환 가능한 방 클래스만 필터링하여 랜덤 반환
+    TSubclassOf<ARoomBase> GetCompatibleRoomClass(ERoomType Type, ESotaDirection RequiredDirection);
 };

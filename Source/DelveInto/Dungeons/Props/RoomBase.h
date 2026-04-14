@@ -112,8 +112,8 @@ protected:
     TMap<ESotaDirection, TObjectPtr<UStaticMeshComponent>> SpawnedFillers;
 
     /** 런타임 방 내부의 Spawner들 */
-    UPROPERTY(VisibleInstanceOnly, Category = "Room|Runtime")
-    TSet<TObjectPtr<UEnemySpawner>> Spawners;
+    UPROPERTY(VisibleDefaultsOnly, Category = "Room|Runtime")
+    TArray<TScriptInterface<IEnemySpawner>> Spawners;
 
     /** 런타임에 스폰되어 생존해 있는 Enemy 목록 */
     UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Room|Runtime")
@@ -188,13 +188,16 @@ public:
     void SpawnFiller(ESotaDirection Direction);
 
     UFUNCTION(BlueprintCallable, Category = "Room|Runtime")
-    void TrigSpawn();
+    void InitSpawners();
 #pragma endregion
 
 #pragma region Protected Overridable Methods
 protected:
-    UFUNCTION()
-    virtual void OnPlayerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+    UFUNCTION(BlueprintNativeEvent, Category = "Room")
+    void PostInitializeComponents() override;
+    
+    UFUNCTION(BlueprintNativeEvent, Category = "Room")
+    void OnPlayerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
                          bool bFromSweep, const FHitResult& SweepResult);
 

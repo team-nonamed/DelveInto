@@ -223,8 +223,12 @@ void ARoomBase::OnConstruction(const FTransform& Transform)
     {
        float BoxExtentXY = FMath::Max(50.0f, HalfSize - 200.0f);
        PlayerDetectionBox->SetBoxExtent(FVector(BoxExtentXY, BoxExtentXY, 300.0f));
-       PlayerDetectionBox->SetRelativeLocation(FVector(0.0f, 0.0f, 150.0f));
+       PlayerDetectionBox->SetRelativeLocation(FVector(0.0f, 0.0f, 300.0f));
     }
+	
+	
+	// Spawner 체크
+	TArray<UActorComponent*> SpawnerComponents = GetComponentsByInterface(UEnemySpawner::StaticClass());
 
 #if WITH_EDITOR
     if (FloorRegionDisplay)
@@ -281,10 +285,11 @@ void ARoomBase::OnConstruction(const FTransform& Transform)
 // =========================================================================
 // 런타임 게임 로직 (방 진입, 전투 클리어, 스폰)
 // =========================================================================
-void ARoomBase::OnPlayerOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
+void ARoomBase::OnPlayerOverlap_Implementation(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
                          bool bFromSweep, const FHitResult& SweepResult)
 {
+	// TODO: Player에 대한 정확한 클래스 체크로 변경 필요
     if (OtherActor && OtherActor->IsA(ADelveCharacter::StaticClass()))
     {
        if (!bIsExplored)
@@ -293,6 +298,21 @@ void ARoomBase::OnPlayerOverlap(UPrimitiveComponent* OverlappedComponent, AActor
           OnPlayerEnteredRoom.Broadcast(this);
        }
     }
+}
+
+void ARoomBase::PostInitializeComponents_Implementation()
+{
+	Super::PostInitializeComponents();
+
+	// 1. 방에 부착된 모든 컴포넌트 중 IEnemySpawner 인터페이스를 가진 컴포넌트를 찾습니다.
+	TArray<UActorComponent*> FoundSpawners = GetComponentsByInterface(UEnemySpawner::StaticClass());
+
+	// 2. 찾은 컴포넌트들을 TScriptInterface 배열에 담아 캐싱합니다.
+	for (UActorComponent* Comp : FoundSpawners)
+	{
+		// UActorComponent가 TScriptInterface 구조체로 자동 변환되어 들어갑니다.
+		Spawners.Add(Comp);
+	}
 }
 
 bool ARoomBase::CheckRoomClear_Implementation()
@@ -314,22 +334,24 @@ bool ARoomBase::CheckRoomClear_Implementation()
     return false;
 }
 
-void ARoomBase::TrigSpawn()
+void ARoomBase::InitSpawners()
 {
-    TArray<UActorComponent*> SpawnerComponents = GetComponentsByInterface(UEnemySpawner::StaticClass());
 
-    for (UActorComponent* Comp : SpawnerComponents)
-    {
-       if (Comp)
-       {
-          ADelveEnemy* SpawnedEnemy = IEnemySpawner::Execute_SpawnEnemy(Comp);
-          if (SpawnedEnemy)
-          {
-             SpawnedEnemy->OnEnemyDeath.AddDynamic(this, &ARoomBase::HandleEnemyDeath);
-             Enemies.Add(SpawnedEnemy);
-          }
-       }
-    }
+	for (const TScriptInterface<IEnemySpawner>& Spawner: Spawners)
+	{
+		if (Spawner.GetObject() == nullptr)
+		{
+			continue;
+		}
+		
+		ADelveEnemy* SpawnedEnemy = IEnemySpawner::Execute_SpawnEnemy(Spawner.GetObject());
+		
+		if (SpawnedEnemy)
+		{
+			SpawnedEnemy->OnEnemyDeath.AddDynamic(this, &ARoomBase::HandleEnemyDeath);
+			Enemies.Add(SpawnedEnemy);
+		}
+	}
 
     if (Enemies.Num() > 0)
     {

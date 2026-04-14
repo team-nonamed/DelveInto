@@ -72,7 +72,7 @@ void USpawnEnemyTriggerBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, 
 	if (OwnerRoom)
 	{
 		// 3. 방의 스폰 함수 호출
-		OwnerRoom->TrigSpawn();
+		OwnerRoom->InitSpawners();
 
 		// 4. 역할 끝났으니 비활성화 (최적화)
 		SetCollisionEnabled(ECollisionEnabled::NoCollision);

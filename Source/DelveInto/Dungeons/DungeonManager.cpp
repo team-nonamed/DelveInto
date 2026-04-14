@@ -1,13 +1,13 @@
-﻿#include "DungeonGenerator.h"
+﻿#include "DungeonManager.h"
 #include "Algo/RandomShuffle.h"
 
 
-ADungeonGenerator::ADungeonGenerator()
+ADungeonManager::ADungeonManager()
 {
     PrimaryActorTick.bCanEverTick = false;
 }
 
-void ADungeonGenerator::BeginPlay()
+void ADungeonManager::BeginPlay()
 {
     Super::BeginPlay();
     
@@ -20,12 +20,18 @@ void ADungeonGenerator::BeginPlay()
     CreateLayout();
     SpawnRooms();
     SpawnDoorsAndLink();
+    
+    CurrentPlayerCoordinate = FIntPoint(0, 0);
+    if (RoomDataMap.Contains(CurrentPlayerCoordinate))
+    {
+        RoomDataMap[CurrentPlayerCoordinate].bIsPlayerVisited = true;
+    }
 }
 
 // ==============================================================================
 // 1. 레이아웃 생성 (가중치 + BFS + 특수방 맨해튼 거리 부착)
 // ==============================================================================
-void ADungeonGenerator::CreateLayout()
+void ADungeonManager::CreateLayout()
 {
     bool bValidLayout = false;
     int32 LayoutAttempts = 0;
@@ -105,30 +111,52 @@ void ADungeonGenerator::CreateLayout()
         TQueue<FIntPoint> TraversingQueue;
         TraversingQueue.Enqueue(CurrentCoord);
 
-        // BFS 루프
         while (MainRoomSpawnOrder.Num() > 0)
         {
             FIntPoint ParentCoord;
             if (!TraversingQueue.Dequeue(ParentCoord)) break; // 막혀서 큐가 고갈됨
 
-            int32 PossibleSpawnable = 4 - GetNeighborCount(ParentCoord);
-            if (PossibleSpawnable <= 0) continue;
+            // 1. 부모 방의 CDO를 가져와서 어느 방향이 막혀있는지 확인합니다.
+            ARoomBase* ParentCDO = nullptr;
+            if (RoomDataMap.Contains(ParentCoord) && RoomDataMap[ParentCoord].RoomClass)
+            {
+                ParentCDO = Cast<ARoomBase>(RoomDataMap[ParentCoord].RoomClass->GetDefaultObject());
+            }
 
-            int32 Branches = FMath::RandRange(1, PossibleSpawnable);
+            // 2. 부모 방이 뻗어나갈 수 있는 진짜(Valid) 방향만 추려냅니다.
+            TArray<FIntPoint> ValidDirections;
+            for (const FIntPoint& Dir : Directions)
+            {
+                FIntPoint NeighborCoord = ParentCoord + Dir;
+                if (RoomDataMap.Contains(NeighborCoord)) continue; // 이미 방이 있음
+                
+                ESotaDirection EnumDir = GetDirectionFromVector(Dir);
+                if (ParentCDO && !ParentCDO->IsConnectorPlaceable(EnumDir)) continue; // 부모 방이 이 방향으론 막혀있음
+
+                ValidDirections.Add(Dir);
+            }
+
+            if (ValidDirections.Num() == 0) continue; // 사방이 막혔거나 꽉 찼으면 스킵
+
+            int32 Branches = FMath::RandRange(1, ValidDirections.Num());
             int32 SpawnedThisTurn = 0;
 
-            Algo::RandomShuffle(Directions);
+            Algo::RandomShuffle(ValidDirections);
 
-            for (const FIntPoint& Dir: Directions)
+            for (const FIntPoint& Dir : ValidDirections)
             {
                 if (SpawnedThisTurn >= Branches) break;         
                 if (MainRoomSpawnOrder.Num() == 0) break;       
 
                 FIntPoint NeighborCoord = ParentCoord + Dir;
-                if (RoomDataMap.Contains(NeighborCoord)) continue;
+                ESotaDirection ParentEnumDir = GetDirectionFromVector(Dir);
+                ESotaDirection RequiredOpDir = GetOppositeDirection(ParentEnumDir); // 자식 방은 이 방향이 반드시 뚫려있어야 함!
 
-                ERoomType NextType = MainRoomSpawnOrder.Pop(false);
-                RoomDataMap.Add(NeighborCoord, FRoomStatus(NeighborCoord, NextType, GetRandomRoomClass(NextType)));
+                // 3. 자식 방을 배치할 때, RequiredOpDir이 뚫려있는 클래스만 엄선해서 가져옵니다.
+                ERoomType NextType = MainRoomSpawnOrder.Pop(EAllowShrinking::No);
+                TSubclassOf<ARoomBase> CompatibleClass = GetCompatibleRoomClass(NextType, RequiredOpDir);
+
+                RoomDataMap.Add(NeighborCoord, FRoomStatus(NeighborCoord, NextType, CompatibleClass));
                 
                 int32& CurrentTypeCount = TypedRoomCurrentCounts.FindOrAdd(NextType);
                 CurrentTypeCount++;
@@ -167,25 +195,33 @@ void ADungeonGenerator::CreateLayout()
 // ==============================================================================
 // 특수방 부착 (막다른 길 탐색 및 맨해튼 거리 적용)
 // ==============================================================================
-bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType)
+bool ADungeonManager::AttachSpecialRoom(ERoomType RoomType)
 {
     if (!RoomPresets.Contains(RoomType)) return false;
     const FRoomTypeConfig& Config = RoomPresets[RoomType];
 
-    TArray<FIntPoint> PotentialSpots;
+    // 이제 PotentialSpots는 후보 좌표와, 맞물려야 할 방향을 함께 저장합니다.
+    struct FSpotInfo { FIntPoint Coord; ESotaDirection RequiredOpDir; };
+    TArray<FSpotInfo> PotentialSpots;
     
     for (const auto& Elem : RoomDataMap)
     {
         if (Elem.Value.Type != ERoomType::Normal && Elem.Value.Type != ERoomType::Start) continue;
 
         FIntPoint Coord = Elem.Key;
+        ARoomBase* ParentCDO = Cast<ARoomBase>(Elem.Value.RoomClass->GetDefaultObject());
+        if (!ParentCDO) continue;
+
         FIntPoint Neighbors[4] = { FIntPoint(Coord.X+1, Coord.Y), FIntPoint(Coord.X-1, Coord.Y), FIntPoint(Coord.X, Coord.Y+1), FIntPoint(Coord.X, Coord.Y-1) };
 
         for (FIntPoint NeighborCoord : Neighbors)
         {
-            if (!RoomDataMap.Contains(NeighborCoord) && GetNeighborCount(NeighborCoord) == 1)
+            ESotaDirection DirToNeighbor = GetDirectionFromVector(NeighborCoord - Coord);
+
+            // 해당 칸이 비어있고, 주변에 내 부모밖에 없으며, 부모 방이 나를 향해 문을 열 수 있을 때만 후보가 됩니다.
+            if (!RoomDataMap.Contains(NeighborCoord) && GetNeighborCount(NeighborCoord) == 1 && ParentCDO->IsConnectorPlaceable(DirToNeighbor))
             {
-                PotentialSpots.AddUnique(NeighborCoord);
+                PotentialSpots.Add({NeighborCoord, GetOppositeDirection(DirToNeighbor)});
             }
         }
     }
@@ -194,6 +230,7 @@ bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType)
     {
         int32 SelectedIndex = 0;
         
+        // ... (이전에 있던 Config.bFurthestSpawn 최장거리 계산 로직은 그대로 유지) ...
         if (Config.bFurthestSpawn)
         {
             int32 MaxDistance = -1;
@@ -201,7 +238,7 @@ bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType)
 
             for (int32 i = 0; i < PotentialSpots.Num(); ++i)
             {
-                int32 GridDist = FMath::Abs(PotentialSpots[i].X) + FMath::Abs(PotentialSpots[i].Y);
+                int32 GridDist = FMath::Abs(PotentialSpots[i].Coord.X) + FMath::Abs(PotentialSpots[i].Coord.Y);
                 if (GridDist > MaxDistance)
                 {
                     MaxDistance = GridDist;
@@ -213,16 +250,19 @@ bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType)
                     MaxDistanceIndices.Add(i); 
                 }
             }
-            int32 RandomChoice = FMath::RandRange(0, MaxDistanceIndices.Num() - 1);
-            SelectedIndex = MaxDistanceIndices[RandomChoice];
+            SelectedIndex = MaxDistanceIndices[FMath::RandRange(0, MaxDistanceIndices.Num() - 1)];
         }
         else
         {
             SelectedIndex = FMath::RandRange(0, PotentialSpots.Num() - 1);
         }
 
-        FIntPoint FinalCoord = PotentialSpots[SelectedIndex];
-        RoomDataMap.Add(FinalCoord, FRoomStatus(FinalCoord, RoomType, GetRandomRoomClass(RoomType)));
+        FSpotInfo FinalSpot = PotentialSpots[SelectedIndex];
+        
+        // 보스방도 부모를 향해 문이 뚫려있는 클래스만 가져옵니다!
+        TSubclassOf<ARoomBase> CompatibleClass = GetCompatibleRoomClass(RoomType, FinalSpot.RequiredOpDir);
+        
+        RoomDataMap.Add(FinalSpot.Coord, FRoomStatus(FinalSpot.Coord, RoomType, CompatibleClass));
         return true; 
     }
     return false; 
@@ -231,7 +271,7 @@ bool ADungeonGenerator::AttachSpecialRoom(ERoomType RoomType)
 // ==============================================================================
 // 2. 방 스폰 (로컬 방향 회전 보정 및 이벤트 구독)
 // ==============================================================================
-void ADungeonGenerator::SpawnRooms()
+void ADungeonManager::SpawnRooms()
 {
     SpawnedRoomMap.Empty();
     if (RoomPresets.Num() == 0) return;
@@ -278,7 +318,7 @@ void ADungeonGenerator::SpawnRooms()
         if (NewRoom)
         {
             SpawnedRoomMap.Add(Coord, NewRoom);
-            NewRoom->OnPlayerEnteredRoom.AddDynamic(this, &ADungeonGenerator::HandleRoomExplored);
+            NewRoom->OnPlayerEnteredRoom.AddDynamic(this, &ADungeonManager::HandleRoomExplored);
         }
     }
 }
@@ -286,7 +326,7 @@ void ADungeonGenerator::SpawnRooms()
 // ==============================================================================
 // 미니맵 갱신 콜백 (델리게이트 브로드캐스트)
 // ==============================================================================
-void ADungeonGenerator::HandleRoomExplored(ARoomBase* ExploredRoom)
+void ADungeonManager::HandleRoomExplored(ARoomBase* ExploredRoom)
 {
     if (!ExploredRoom) return;
 
@@ -309,7 +349,7 @@ void ADungeonGenerator::HandleRoomExplored(ARoomBase* ExploredRoom)
 // ==============================================================================
 // 3. 커넥터(문) 및 빈 공간(Filler) 스폰 (갈등 조정 포함)
 // ==============================================================================
-void ADungeonGenerator::SpawnDoorsAndLink()
+void ADungeonManager::SpawnDoorsAndLink()
 {
     for (auto& Elem : SpawnedRoomMap)
     {
@@ -396,7 +436,7 @@ void ADungeonGenerator::SpawnDoorsAndLink()
 // 헬퍼 함수들
 // ==============================================================================
 
-int32 ADungeonGenerator::GetNeighborCount(FIntPoint Coord)
+int32 ADungeonManager::GetNeighborCount(FIntPoint Coord)
 {
     int32 Count = 0;
     if (RoomDataMap.Contains(FIntPoint(Coord.X + 1, Coord.Y))) Count++;
@@ -406,7 +446,7 @@ int32 ADungeonGenerator::GetNeighborCount(FIntPoint Coord)
     return Count;
 }
 
-FIntPoint ADungeonGenerator::GetNeighborCoordinate(FIntPoint Current, ESotaDirection Direction)
+FIntPoint ADungeonManager::GetNeighborCoordinate(FIntPoint Current, ESotaDirection Direction)
 {
     switch (Direction)
     {
@@ -418,7 +458,7 @@ FIntPoint ADungeonGenerator::GetNeighborCoordinate(FIntPoint Current, ESotaDirec
     }
 }
 
-ESotaDirection ADungeonGenerator::GetOppositeDirection(ESotaDirection Direction)
+ESotaDirection ADungeonManager::GetOppositeDirection(ESotaDirection Direction)
 {
     switch (Direction)
     {
@@ -430,7 +470,7 @@ ESotaDirection ADungeonGenerator::GetOppositeDirection(ESotaDirection Direction)
     }
 }
 
-TSubclassOf<ARoomBase> ADungeonGenerator::GetRandomRoomClass(ERoomType Type)
+TSubclassOf<ARoomBase> ADungeonManager::GetRandomRoomClass(ERoomType Type)
 {
     if (RoomPresets.Contains(Type))
     {
@@ -446,4 +486,52 @@ TSubclassOf<ARoomBase> ADungeonGenerator::GetRandomRoomClass(ERoomType Type)
         return GetRandomRoomClass(ERoomType::Normal);
     }
     return nullptr;
+}
+
+ESotaDirection ADungeonManager::GetDirectionFromVector(FIntPoint Vector)
+{
+    if (Vector == FIntPoint(1, 0)) return ESotaDirection::Forward;
+    if (Vector == FIntPoint(-1, 0)) return ESotaDirection::Backward;
+    if (Vector == FIntPoint(0, 1)) return ESotaDirection::Right;
+    if (Vector == FIntPoint(0, -1)) return ESotaDirection::Left;
+    return ESotaDirection::Empty;
+}
+
+TSubclassOf<ARoomBase> ADungeonManager::GetCompatibleRoomClass(ERoomType Type, ESotaDirection RequiredDirection)
+{
+    if (RoomPresets.Contains(Type))
+    {
+        const TArray<TSubclassOf<ARoomBase>>& Candidates = RoomPresets[Type].Variations;
+        TArray<TSubclassOf<ARoomBase>> ValidCandidates;
+
+        for (TSubclassOf<ARoomBase> Class : Candidates)
+        {
+            if (Class)
+            {
+                // CDO(Class Default Object)를 가져와서 기획자가 설정한 플래그를 확인합니다.
+                if (ARoomBase* CDO = Cast<ARoomBase>(Class->GetDefaultObject()))
+                {
+                    if (CDO->IsConnectorPlaceable(RequiredDirection))
+                    {
+                        ValidCandidates.Add(Class); // 이 방향에 문이 달릴 수 있는 방만 합격!
+                    }
+                }
+            }
+        }
+
+        // 합격한 후보군 중에서 랜덤으로 하나를 뽑습니다.
+        if (ValidCandidates.Num() > 0)
+        {
+            return ValidCandidates[FMath::RandRange(0, ValidCandidates.Num() - 1)];
+        }
+    }
+
+    // 만약 기획 오류로 맞는 방이 없다면, 일반 방(Normal) 중에서라도 호환되는 걸 찾아봅니다. (안전장치)
+    if (Type != ERoomType::Normal && RoomPresets.Contains(ERoomType::Normal))
+    {
+        return GetCompatibleRoomClass(ERoomType::Normal, RequiredDirection);
+    }
+
+    // 최후의 수단: 어쩔 수 없이 아무거나 리턴 (기획 데이터 점검 필요)
+    return GetRandomRoomClass(Type);
 }
