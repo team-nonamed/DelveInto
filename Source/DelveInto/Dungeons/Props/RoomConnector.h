@@ -20,14 +20,14 @@ public:
 	virtual void OpenConnector(bool bPlaySound = true) {}
 
 	/** 커넥터를 닫습니다 (예: 문 닫기, 보스방 봉쇄) */
-	virtual void CloseConnector() {}
+	virtual void CloseConnector(bool bPlaySound = true) {}
 	
 #if WITH_EDITORONLY_DATA
 protected:
 	/** * 기획자가 지정하는 에디터 미리보기용 대표 메쉬 
 	 * (이 문이 다른 방의 에디터 뷰포트에 어떻게 보일지 결정합니다) 
 	 */
-	UPROPERTY(EditDefaultsOnly, Category = "Editor Preview")
+	UPROPERTY(EditDefaultsOnly, Category = "Connector")
 	TObjectPtr<UStaticMesh> EditorPreviewMesh;
 
 public:

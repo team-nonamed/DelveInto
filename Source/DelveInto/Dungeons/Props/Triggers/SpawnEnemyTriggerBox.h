@@ -6,8 +6,7 @@
 #include "Components/BoxComponent.h"
 #include "SpawnEnemyTriggerBox.generated.h"
 
-
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Trigger), meta=(BlueprintSpawnableComponent))
 class DELVEINTO_API USpawnEnemyTriggerBox : public UBoxComponent
 {
 	GENERATED_BODY()

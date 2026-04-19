@@ -111,6 +111,15 @@ void ADelveEnemy::OnConstruction(const FTransform& Transform)
     }
 }
 
+FVector ADelveEnemy::GetFlipbookScale() const
+{
+    if (EnemyFlipbook)
+    {
+        return EnemyFlipbook->GetRelativeScale3D();
+    }
+    return FVector(1.0f, 1.0f, 1.0f);
+}
+
 void ADelveEnemy::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);

@@ -170,6 +170,8 @@ void ADelveCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
         EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_InteractPressed);
 
         EnhancedInputComponent->BindAction(OneAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_PotionPressed);
+        
+        EnhancedInputComponent->BindAction(MapAction, ETriggerEvent::Started, this, &ADelveCharacter::Input_MapPressed);
     }
 }
 
@@ -369,5 +371,45 @@ void ADelveCharacter::Input_PotionPressed()
     {
         // EWeaponSkillSlot::Potion 슬롯에 할당된 스킬을 실행!
         CombatHandler->HandleInput(EWeaponSkillSlot::One, true); 
+    }
+}
+
+void ADelveCharacter::Input_MapPressed()
+{
+    if (!FullMapWidgetClass)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("전체 맵 위젯 클래스가 블루프린트에 설정되지 않았습니다!"));
+        return;
+    }
+
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (!PC) return;
+
+    // 위젯이 아직 생성되지 않았다면 최초 1회 생성합니다.
+    if (!FullMapWidgetInstance)
+    {
+        FullMapWidgetInstance = CreateWidget<UDungeonFullMapWidget>(GetWorld(), FullMapWidgetClass);
+    }
+
+    if (FullMapWidgetInstance)
+    {
+        // 이미 화면에 띄워져 있다면 닫기
+        if (FullMapWidgetInstance->IsInViewport())
+        {
+            FullMapWidgetInstance->RemoveFromParent();
+            
+            // 게임 조작 모드로 복귀 및 마우스 숨김
+            PC->SetInputMode(FInputModeGameOnly());
+            PC->bShowMouseCursor = false;
+        }
+        // 화면에 없다면 열기
+        else
+        {
+            FullMapWidgetInstance->AddToViewport(10); // 미니맵보다 높게 설정
+            
+            // UI 조작 모드로 변경 (필요하다면 GameAndUI 사용) 및 마우스 표시
+            PC->SetInputMode(FInputModeGameAndUI());
+            PC->bShowMouseCursor = true;
+        }
     }
 }

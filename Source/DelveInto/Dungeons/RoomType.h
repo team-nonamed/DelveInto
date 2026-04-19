@@ -9,3 +9,11 @@ enum class ERoomType : uint8
 	Treasure,
 	NPC
 };
+
+UENUM(BlueprintType)
+enum class ERoomVisitStatus: uint8
+{
+	Unknown,
+	Unvisited,
+	Visited,
+};

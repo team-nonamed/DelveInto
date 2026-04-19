@@ -1,5 +1,7 @@
 ﻿#include "RoomBase.h"
 
+#include "NavigationSystem.h"
+#include "AI/NavigationSystemBase.h"
 #include "Components/ArrowComponent.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -8,6 +10,7 @@
 
 #if WITH_EDITOR
 #pragma region Display Creation
+
 void ARoomBase::CreateArrowDisplayHolder()
 {
     ArrowDisplayHolder = CreateDefaultSubobject<USceneComponent>(TEXT("Arrow Display Holder"));
@@ -125,12 +128,15 @@ ARoomBase::ARoomBase()
     PrimaryActorTick.bCanEverTick = false;
     
     RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Center Anchor"));
+	RootComponent->Mobility = EComponentMobility::Movable;
 
     TerrainMeshHolder = CreateDefaultSubobject<USceneComponent>(TEXT("Terrain Mesh Holder"));
     TerrainMeshHolder->SetupAttachment(RootComponent);
     
     FloorMeshComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Floor Mesh Component"));
     FloorMeshComponent->SetupAttachment(TerrainMeshHolder);
+	FloorMeshComponent->SetCollisionProfileName(TEXT("BlockAll"));
+	FloorMeshComponent->SetCanEverAffectNavigation(true);
 	
 	CeilingMeshComponent = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Ceiling Mesh Component"));
 	CeilingMeshComponent->SetupAttachment(TerrainMeshHolder);
@@ -153,11 +159,14 @@ ARoomBase::ARoomBase()
     CreateConnectorRegionDisplays();
     CreateConnectorDisplays();
 #endif
-
-    PlayerDetectionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("Player Detection Box"));
-    PlayerDetectionBox->SetupAttachment(RootComponent);
-    PlayerDetectionBox->SetCollisionProfileName(TEXT("Trigger"));
-    PlayerDetectionBox->OnComponentBeginOverlap.AddDynamic(this, &ARoomBase::OnPlayerOverlap);
+	
+	PlayerDetectionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("Player Detection Box"));
+	PlayerDetectionBox->SetupAttachment(RootComponent);
+	PlayerDetectionBox->SetCollisionProfileName(TEXT("Trigger"));
+    
+	// 기본적으로는 콜리전을 꺼둡니다. (원치 않는 초기 오버랩 방지)
+	PlayerDetectionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
 }
 
 // =========================================================================
@@ -221,14 +230,10 @@ void ARoomBase::OnConstruction(const FTransform& Transform)
 
     if (PlayerDetectionBox)
     {
-       float BoxExtentXY = FMath::Max(50.0f, HalfSize - 200.0f);
+       float BoxExtentXY = FMath::Max(50.0f, HalfSize - RoomConfig.PlayerSensorBoxMargin);
        PlayerDetectionBox->SetBoxExtent(FVector(BoxExtentXY, BoxExtentXY, 300.0f));
        PlayerDetectionBox->SetRelativeLocation(FVector(0.0f, 0.0f, 300.0f));
     }
-	
-	
-	// Spawner 체크
-	TArray<UActorComponent*> SpawnerComponents = GetComponentsByInterface(UEnemySpawner::StaticClass());
 
 #if WITH_EDITOR
     if (FloorRegionDisplay)
@@ -259,10 +264,10 @@ void ARoomBase::OnConstruction(const FTransform& Transform)
         FVector TargetLoc = FVector::ZeroVector;
         FRotator TargetRot = FRotator::ZeroRotator;
 
-        if (EnumHasAnyFlags(Dir, ESotaDirection::Forward))  { TargetLoc = FVector(HalfSize, 0.f, 0.f); TargetRot = FRotator(0.f, 90.f, 0.f); }
-        else if (EnumHasAnyFlags(Dir, ESotaDirection::Backward)) { TargetLoc = FVector(-HalfSize, 0.f, 0.f); TargetRot = FRotator(0.f, -90.f, 0.f); }
-        else if (EnumHasAnyFlags(Dir, ESotaDirection::Right))    { TargetLoc = FVector(0.f, HalfSize, 0.f); TargetRot = FRotator(0.f, 180.f, 0.f); }
-        else if (EnumHasAnyFlags(Dir, ESotaDirection::Left))     { TargetLoc = FVector(0.f, -HalfSize, 0.f); TargetRot = FRotator(0.f, 0.f, 0.f); }
+        if (EnumHasAnyFlags(Dir, ESotaDirection::Forward))  { TargetLoc = FVector(HalfSize, 0.f, 0.f); TargetRot = FRotator(0.f, 0.0f, 0.f); }
+        else if (EnumHasAnyFlags(Dir, ESotaDirection::Backward)) { TargetLoc = FVector(-HalfSize, 0.f, 0.f); TargetRot = FRotator(0.f, 180.f, 0.f); }
+        else if (EnumHasAnyFlags(Dir, ESotaDirection::Right))    { TargetLoc = FVector(0.f, HalfSize, 0.f); TargetRot = FRotator(0.f, 90.f, 0.f); }
+        else if (EnumHasAnyFlags(Dir, ESotaDirection::Left))     { TargetLoc = FVector(0.f, -HalfSize, 0.f); TargetRot = FRotator(0.f, -90.f, 0.f); }
 
         MeshComp->SetRelativeLocationAndRotation(TargetLoc, TargetRot);
 
@@ -289,15 +294,25 @@ void ARoomBase::OnPlayerOverlap_Implementation(UPrimitiveComponent* OverlappedCo
                          UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
                          bool bFromSweep, const FHitResult& SweepResult)
 {
-	// TODO: Player에 대한 정확한 클래스 체크로 변경 필요
-    if (OtherActor && OtherActor->IsA(ADelveCharacter::StaticClass()))
-    {
-       if (!bIsExplored)
-       {
-          bIsExplored = true;
-          OnPlayerEnteredRoom.Broadcast(this);
-       }
-    }
+	if (!OtherActor) return;
+
+	// [디버깅 로그] 어떤 녀석이 트리거를 건드렸는지 범인을 찾아냅니다!
+	UE_LOG(LogTemp, Warning, TEXT("[%s] Overlapped by: %s (Component: %s)"), *GetName(), *OtherActor->GetName(), OtherComp ? *OtherComp->GetName() : TEXT("Null"));
+
+	if (OtherActor->IsA(ADelveCharacter::StaticClass()))
+	{
+		// [핵심 방어 로직] 해당 액터가 현재 플레이어(사람)에 의해 조종받고 있는지 확인합니다.
+		APawn* OverlappedPawn = Cast<APawn>(OtherActor);
+		if (OverlappedPawn && OverlappedPawn->IsPlayerControlled())
+		{
+			bIsExplored = true;
+			OnPlayerEnteredRoom.Broadcast(this);
+			
+			InitSpawners();
+            
+			UE_LOG(LogTemp, Log, TEXT("Player successfully entered room: %s"), *GetName());
+		}
+	}
 }
 
 void ARoomBase::PostInitializeComponents_Implementation()
@@ -312,6 +327,22 @@ void ARoomBase::PostInitializeComponents_Implementation()
 	{
 		// UActorComponent가 TScriptInterface 구조체로 자동 변환되어 들어갑니다.
 		Spawners.Add(Comp);
+	}
+	
+	if (RoomConfig.bUsePlayerDetectionBox && PlayerDetectionBox)
+	{
+		// 1. 박스 크기를 방 크기에 맞게 세팅합니다. (높이는 넉넉하게 500 등)
+		float HalfSize = RoomConfig.Size * 0.5f;
+		
+		float BoxExtentXY = FMath::Max(50.0f, HalfSize - RoomConfig.PlayerSensorBoxMargin);
+		PlayerDetectionBox->SetBoxExtent(FVector(BoxExtentXY, BoxExtentXY, 300.0f));
+		PlayerDetectionBox->SetRelativeLocation(FVector(0.0f, 0.0f, 300.0f));
+
+		// 2. 콜리전을 켭니다.
+		PlayerDetectionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+		// 3. 오버랩 이벤트를 여기서 바인딩합니다! (초기 스폰 버그 완벽 차단)
+		PlayerDetectionBox->OnComponentBeginOverlap.AddDynamic(this, &ARoomBase::OnPlayerOverlap);
 	}
 }
 
@@ -410,6 +441,19 @@ void ARoomBase::CreateFloorByHISM_Implementation(UStaticMesh* FloorMesh)
     }
 
     FloorMeshComponent->AddInstances(InstanceTransforms, false);
+	
+	// =========================================================================
+	// [추가] HISM의 고질병 해결: 엔진에게 인스턴스가 추가되었으니 물리 영역을 다시 계산하라고 명령
+	// =========================================================================
+	// 1. 컴포넌트의 영역(Bounds)을 강제로 새로고침합니다.
+	FloorMeshComponent->UpdateBounds();
+
+	// 2. 네비게이션 시스템에 이 컴포넌트의 데이터가 변경되었음을 즉각 보고합니다.
+	UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	if (NavSys)
+	{
+		NavSys->UpdateComponentInNavOctree(*FloorMeshComponent);
+	}
 }
 
 void ARoomBase::CreateWallByHISM_Implementation(ESotaDirection Direction, UStaticMesh* WallMesh, int32 Height)
@@ -607,17 +651,18 @@ void ARoomBase::SpawnFiller(ESotaDirection WorldDirection)
        NewFiller->SetStaticMesh(FillerMesh);
        NewFiller->SetupAttachment(RootComponent);
         
-       float HalfSize = RoomConfig.Size * 0.5f;
-       FVector LocalLoc = FVector::ZeroVector;
-       FRotator LocalRot = FRotator::ZeroRotator;
+    	float HalfSize = RoomConfig.Size * 0.5f;
+    	FVector LocalLoc = FVector::ZeroVector;
+    	FRotator LocalRot = FRotator::ZeroRotator;
 
-       switch (LocalDirection) {
-           case ESotaDirection::Forward:  LocalLoc = FVector(HalfSize, 0, 0); LocalRot = FRotator::ZeroRotator; break;
-           case ESotaDirection::Backward: LocalLoc = FVector(-HalfSize, 0, 0); LocalRot = FRotator(0, 180.f, 0); break;
-           case ESotaDirection::Right:    LocalLoc = FVector(0, HalfSize, 0); LocalRot = FRotator(0, 90.f, 0); break;
-           case ESotaDirection::Left:     LocalLoc = FVector(0, -HalfSize, 0); LocalRot = FRotator(0, -90.f, 0); break;
-           default: break;
-       }
+    	// [수정] 막음용 벽(Filler)도 방향에 맞게 회전시킵니다.
+    	switch (LocalDirection) {
+    	case ESotaDirection::Forward:  LocalLoc = FVector(HalfSize, 0, 0); LocalRot = FRotator(0.0f, 90.f, 0.0f); break;
+    	case ESotaDirection::Backward: LocalLoc = FVector(-HalfSize, 0, 0); LocalRot = FRotator(0.0f, -90.f, 0.0f); break;
+    	case ESotaDirection::Right:    LocalLoc = FVector(0, HalfSize, 0); LocalRot = FRotator(0.0f, 180.f, 0.0f); break;
+    	case ESotaDirection::Left:     LocalLoc = FVector(0, -HalfSize, 0); LocalRot = FRotator(0.0f, 0.f, 0.0f); break;
+    	default: break;
+    	}
 
        NewFiller->SetRelativeLocationAndRotation(LocalLoc, LocalRot);
        NewFiller->RegisterComponent();

@@ -4,7 +4,25 @@
 #include "Dungeons/Props/RoomConnector.h"
 #include "DelveDoor.generated.h"
 
-UCLASS()
+USTRUCT(BlueprintType)
+struct FDoorConfigData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door")
+	bool bIsOpenedInClass = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door")
+	bool bIsOpenedInitially = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	TObjectPtr<USoundBase> OpenSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	TObjectPtr<USoundBase> CloseSound;
+};
+
+UCLASS(Abstract)
 class DELVEINTO_API ADelveDoor : public ARoomConnector // [수정 2] ARoomConnector 상속
 {
 	GENERATED_BODY()
@@ -15,6 +33,10 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Config")
+	FDoorConfigData DoorConfig;
+	
 public:
 	// --- 컴포넌트 ---
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Door")
@@ -32,24 +54,18 @@ public:
 
 	// --- 상태 ---
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Door")
-	bool bIsOpen = false; 
+	bool bIsOpen = true; 
 
 	// ==============================================================
 	// [수정 4] 부모의 가상 함수 오버라이드 (기존 UnlockAndOpen / CloseAndLock 대체)
 	// ==============================================================
 	virtual void OpenConnector(bool bPlaySound = true) override;
-	virtual void CloseConnector() override;
-    
-	UPROPERTY(EditAnywhere, Category = "Audio")
-	USoundBase* OpenSound;
-
-	UPROPERTY(EditAnywhere, Category = "Audio")
-	USoundBase* CloseSound;
+	virtual void CloseConnector(bool bPlaySound = true) override;
 
 	// 블루프린트 구현부 (기존 유지)
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Door")
-	void OpenDoor(bool Sound);
+	void OpenDoor(bool Sound = true);
 
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Door")
-	void CloseDoor();
+	void CloseDoor(bool Sound = true);
 };

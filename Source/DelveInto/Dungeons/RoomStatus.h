@@ -22,7 +22,7 @@ struct FRoomStatus
 	TSubclassOf<ARoomBase> RoomClass;
 
 	UPROPERTY(BlueprintReadOnly)
-	bool bIsPlayerVisited = false;
+	ERoomVisitStatus VisitStatus = ERoomVisitStatus::Unknown;
 
 	// 기본 생성자
 	FRoomStatus() : Coordinate(0,0), Type(ERoomType::Normal), RoomClass(nullptr) {}

@@ -4,6 +4,8 @@
 #include "SimpleEnemySpawner.h"
 
 #include "PaperFlipbookComponent.h"
+#include "PaperSprite.h"
+#include "Components/CapsuleComponent.h"
 
 
 // Sets default values for this component's properties
@@ -57,29 +59,62 @@ ADelveEnemy* USimpleEnemySpawner::SpawnEnemy_Implementation()
 void USimpleEnemySpawner::UpdatePreviewRenderer_Implementation()
 {
 #if WITH_EDITOR
-	if (!PreviewFlipbook)
-	{
-		return;
-	}
+    if (!PreviewFlipbook)
+    {
+       return;
+    }
 
-	if (!EnemyClassToSpawn)
-	{
-		PreviewFlipbook->SetFlipbook(nullptr);
-		return;
-	}
+    if (!EnemyClassToSpawn)
+    {
+       PreviewFlipbook->SetFlipbook(nullptr);
+       return;
+    }
 
-	ADelveEnemy* DefaultEnemyData = EnemyClassToSpawn->GetDefaultObject<ADelveEnemy>();
-	
-	UPaperFlipbook* Flipbook = DefaultEnemyData->IdleFlipbook;
+    ADelveEnemy* DefaultEnemyData = EnemyClassToSpawn->GetDefaultObject<ADelveEnemy>();
+    
+    if (DefaultEnemyData && DefaultEnemyData->IdleFlipbook)
+    {
+       // 1. 뼈대가 되는 플립북 세팅
+       UPaperFlipbook* Flipbook = DefaultEnemyData->IdleFlipbook;
+       PreviewFlipbook->SetFlipbook(Flipbook);
 
-	if (Flipbook)
-	{
-		PreviewFlipbook->SetFlipbook(Flipbook);
-	}
-	else
-	{
-		PreviewFlipbook->SetFlipbook(nullptr);
-	}
+       // 2. CDO에서 캡슐의 높이 가져오기
+       float CapHalfHeight = DefaultEnemyData->GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
+       
+       // 3. 플립북의 첫 번째 프레임(스프라이트)에서 실제 렌더링 크기 추출
+    	float SpriteWorldHeight = 1.0f; // 0으로 나누기 방지용 기본값
+    	UPaperSprite* FirstSprite = Flipbook->GetSpriteAtFrame(0);
+       
+    	if (FirstSprite)
+    	{
+    		// [수정] 변수 이름을 Bounds에서 SpriteBounds로 변경합니다!
+    		FBoxSphereBounds SpriteBounds = FirstSprite->GetRenderBounds();
+    		SpriteWorldHeight = SpriteBounds.BoxExtent.Z * 2.0f; 
+    	}
+
+       // 4. ADelveEnemy::OnConstruction과 완벽히 동일한 스케일 계산 로직
+       if (DefaultEnemyData->bAutoResizeToCapsule && SpriteWorldHeight > 1.0f)
+       {
+           float CapsuleTotalHeight = CapHalfHeight * 2.0f;
+           float NewScale = CapsuleTotalHeight / SpriteWorldHeight;
+           
+           PreviewFlipbook->SetRelativeScale3D(FVector(NewScale, NewScale, NewScale));
+       }
+       else
+       {
+           // 자동 조절을 안 쓴다면 기본 객체에 세팅된 스케일을 그대로 씁니다.
+           PreviewFlipbook->SetRelativeScale3D(DefaultEnemyData->EnemyFlipbook->GetRelativeScale3D());
+       }
+
+       // 5. 위치와 회전 맞추기 (캡슐 바닥으로 내리고 -90도 회전)
+       PreviewFlipbook->SetRelativeLocation(FVector(0.0f, 0.0f, -CapHalfHeight));
+       PreviewFlipbook->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+    }
+    else
+    {
+       PreviewFlipbook->SetFlipbook(nullptr);
+       PreviewFlipbook->SetRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+    }
 #endif
 }
 

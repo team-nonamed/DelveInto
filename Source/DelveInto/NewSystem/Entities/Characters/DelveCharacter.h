@@ -4,6 +4,7 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "NewSystem/Items/ItemData.h"
+#include "Widgets/Maps/DungeonFullMapWidget.h"
 #include "DelveCharacter.generated.h"
 
 class UInputMappingContext;
@@ -66,6 +67,12 @@ public:
 
     UPROPERTY(EditAnywhere, Category = "UI")
     TSubclassOf<class UUserWidget> GameOverWidgetClass;
+    
+    UPROPERTY(EditAnywhere, Category = "UI")
+    TSubclassOf<UDungeonFullMapWidget> FullMapWidgetClass;
+
+    UPROPERTY()
+    UDungeonFullMapWidget* FullMapWidgetInstance;
 
     // --- 오디오 및 애니메이션 ---
     UPROPERTY(EditAnywhere, Category = "Audio")
@@ -111,6 +118,8 @@ public:
     UInputAction* InteractAction;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
     UInputAction* OneAction;
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+    UInputAction* MapAction;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     UAudioComponent* CurrentBGMComponent;
@@ -151,6 +160,7 @@ private:
     void Input_DashReleased();
     void Input_InteractPressed();
     void Input_PotionPressed();
+    void Input_MapPressed();
     
     UFUNCTION()
     void HandleDamaged(float InMaxHealth, float InCurrentHealth);

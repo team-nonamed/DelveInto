@@ -29,9 +29,17 @@ struct FRoomDesignConfig
     /** 방의 전체 크기 */
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta=(ClampMin="700.0", UIMin="700.0"))
     float Size = 6300.0f;
+    
+    /** 플레이어 감지용 트리거 박스 사용 여부 */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+    bool bUsePlayerDetectionBox = true;
+    
+    /** 플레이어 감지용 트리거 박스의 마진 값 */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta=(ClampMin="0.0", UIMin="0.0", EditCondition="bUsePlayerDetectionBox", EditConditionHides="bUsePlayerDetectionBox==true"))
+    float PlayerSensorBoxMargin = 50.0f;
 
     /** 방의 정면(Forward) 기준 방향 */
-    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
     ESotaDirection ForwardDirection = ESotaDirection::Forward;
 
     /** 미니맵 등에 사용될 방의 아이콘 */

@@ -1,4 +1,6 @@
 ﻿#include "DungeonManager.h"
+
+#include "NavigationSystem.h"
 #include "Algo/RandomShuffle.h"
 
 
@@ -21,10 +23,30 @@ void ADungeonManager::BeginPlay()
     SpawnRooms();
     SpawnDoorsAndLink();
     
+    UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+    if (NavSys)
+    {
+        // 현재 스폰된 지형을 바탕으로 네비메시를 강제로 다시 굽습니다.
+        NavSys->Build(); 
+    }
+    
     CurrentPlayerCoordinate = FIntPoint(0, 0);
     if (RoomDataMap.Contains(CurrentPlayerCoordinate))
     {
-        RoomDataMap[CurrentPlayerCoordinate].bIsPlayerVisited = true;
+        RoomDataMap[CurrentPlayerCoordinate].VisitStatus = ERoomVisitStatus::Visited;
+        
+        TArray<FIntPoint> Directions = { FIntPoint(1, 0), FIntPoint(-1, 0), FIntPoint(0, 1), FIntPoint(0, -1) };
+
+        for (auto Direction : Directions)
+        {
+            FIntPoint NeighborCoord = CurrentPlayerCoordinate + Direction;
+            if (!RoomDataMap.Contains(NeighborCoord)) continue;
+                
+            if (RoomDataMap[NeighborCoord].VisitStatus == ERoomVisitStatus::Unknown)
+            {
+                RoomDataMap[NeighborCoord].VisitStatus = ERoomVisitStatus::Unvisited;
+            }
+        }
     }
 }
 
@@ -328,22 +350,38 @@ void ADungeonManager::SpawnRooms()
 // ==============================================================================
 void ADungeonManager::HandleRoomExplored(ARoomBase* ExploredRoom)
 {
+    UE_LOG(LogTemp, Log, TEXT("DungeonGenerator: Room %s has been explored by the player."), *ExploredRoom->GetName());
+    
     if (!ExploredRoom) return;
 
     const FIntPoint* FoundCoord = SpawnedRoomMap.FindKey(ExploredRoom);
     if (FoundCoord)
     {
         CurrentPlayerCoordinate = *FoundCoord;
-        if (RoomDataMap.Contains(CurrentPlayerCoordinate))
+        if (RoomDataMap[CurrentPlayerCoordinate].VisitStatus != ERoomVisitStatus::Visited && RoomDataMap.Contains(CurrentPlayerCoordinate))
         {
-            RoomDataMap[CurrentPlayerCoordinate].bIsPlayerVisited = true;
+            RoomDataMap[CurrentPlayerCoordinate].VisitStatus = ERoomVisitStatus::Visited;
+            
+            TArray<FIntPoint> Directions = { FIntPoint(1, 0), FIntPoint(-1, 0), FIntPoint(0, 1), FIntPoint(0, -1) };
+
+            for (auto Direction : Directions)
+            {
+                FIntPoint NeighborCoord = CurrentPlayerCoordinate + Direction;
+                if (!RoomDataMap.Contains(NeighborCoord)) continue;
+                
+                if (RoomDataMap[NeighborCoord].VisitStatus == ERoomVisitStatus::Unknown)
+                {
+                    RoomDataMap[NeighborCoord].VisitStatus = ERoomVisitStatus::Unvisited;
+                }
+            }
         }
 
         UE_LOG(LogTemp, Log, TEXT("DungeonGenerator: Player is now in Room %s"), *CurrentPlayerCoordinate.ToString());
         
         // 미니맵 UI 갱신 신호 송출
-        OnPlayerMovedRoom.Broadcast();
+        
     }
+    OnPlayerMovedRoom.Broadcast();
 }
 
 // ==============================================================================
@@ -501,37 +539,43 @@ TSubclassOf<ARoomBase> ADungeonManager::GetCompatibleRoomClass(ERoomType Type, E
 {
     if (RoomPresets.Contains(Type))
     {
-        const TArray<TSubclassOf<ARoomBase>>& Candidates = RoomPresets[Type].Variations;
+        const FRoomTypeConfig& Config = RoomPresets[Type]; // [수정] Config를 참조합니다.
+        const TArray<TSubclassOf<ARoomBase>>& Candidates = Config.Variations;
         TArray<TSubclassOf<ARoomBase>> ValidCandidates;
 
         for (TSubclassOf<ARoomBase> Class : Candidates)
         {
             if (Class)
             {
-                // CDO(Class Default Object)를 가져와서 기획자가 설정한 플래그를 확인합니다.
+                // [핵심 추가] 특수 방(보스, 상점)은 나중에 SpawnRooms에서 자동으로 회전시켜 맞춰주므로 방향 검사를 프리패스합니다!
+                if (Config.bIsConnectedByOneConnector)
+                {
+                    ValidCandidates.Add(Class);
+                    continue; // 검사 건너뛰기
+                }
+
+                // 일반 방은 기존처럼 엄격하게 방향 검사
                 if (ARoomBase* CDO = Cast<ARoomBase>(Class->GetDefaultObject()))
                 {
                     if (CDO->IsConnectorPlaceable(RequiredDirection))
                     {
-                        ValidCandidates.Add(Class); // 이 방향에 문이 달릴 수 있는 방만 합격!
+                        ValidCandidates.Add(Class); 
                     }
                 }
             }
         }
 
-        // 합격한 후보군 중에서 랜덤으로 하나를 뽑습니다.
         if (ValidCandidates.Num() > 0)
         {
             return ValidCandidates[FMath::RandRange(0, ValidCandidates.Num() - 1)];
         }
     }
 
-    // 만약 기획 오류로 맞는 방이 없다면, 일반 방(Normal) 중에서라도 호환되는 걸 찾아봅니다. (안전장치)
+    // 만약 기획 오류로 맞는 방이 없다면 일반 방으로 대체 (안전장치)
     if (Type != ERoomType::Normal && RoomPresets.Contains(ERoomType::Normal))
     {
         return GetCompatibleRoomClass(ERoomType::Normal, RequiredDirection);
     }
 
-    // 최후의 수단: 어쩔 수 없이 아무거나 리턴 (기획 데이터 점검 필요)
     return GetRandomRoomClass(Type);
 }

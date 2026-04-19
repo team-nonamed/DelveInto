@@ -87,6 +87,11 @@ public:
 
     UPROPERTY(EditAnywhere, Category = "Damage")
     float Damage = 10.0f;
+    
+public:
+    // 다른 클래스나 블루프린트에서 호출할 수 있도록 UFUNCTION을 붙여줍니다.
+    UFUNCTION(BlueprintCallable, Category = "Enemy|Visual")
+    FVector GetFlipbookScale() const;
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Collision")
